@@ -56,12 +56,12 @@ class Tree:
         self._print_grid()
 
         #Queue it
-        self.node_queue.append((root.x, root.y+VERTICAL_GAP))
-        self.node_queue.append((root.x-HORIZONTAL_GAP, root.y))
-        self.node_queue.append((root.x+HORIZONTAL_GAP, root.y))
-        self.node_queue.append((root.x, root.y-VERTICAL_GAP))
+        self.node_queue.append((root.x, root.y+VERTICAL_GAP, UP))
+        self.node_queue.append((root.x-HORIZONTAL_GAP, root.y, RIGHT))
+        self.node_queue.append((root.x+HORIZONTAL_GAP, root.y, LEFT))
+        self.node_queue.append((root.x, root.y-VERTICAL_GAP, DOWN))
 
-    #TODO
+
     def _determine_row(self, y):
         root_y = self.root.y
 
@@ -78,7 +78,7 @@ class Tree:
 
         return 7//2+deviations
 
-    #TODO
+
     def _determine_col(self, x):
         root_x = self.root.x
 
@@ -103,7 +103,6 @@ class Tree:
         print('\n'.join(table))
         print()
 
-    #TODO
     def _no_collide(self, grid_x, grid_y):
         return self.grid[grid_y][grid_x] == 0  
 
@@ -122,10 +121,21 @@ class Tree:
         parent_node.add_child(new_node)
 
         if parent_node is self.central_node:
-            new_node.x, new_node.y = self.node_queue.pop(0)
-            grid_x, grid_y = self._determine_col(new_node.x), self._determine_row(new_node.y)
+            '''
+            Having it run at least once because: ?
+            '''
+            while True:
+                if not self.node_queue: #Tree is locked
+                    return
+                
+                new_node.x, new_node.y, source_dir = self.node_queue.pop(0)
+                grid_x, grid_y = self._determine_col(new_node.x), self._determine_row(new_node.y)
 
-            if new_node._in_bounds() and self._no_collide(grid_x, grid_y):
+                DEBUG1 = new_node._in_bounds(source_dir)
+                #DEBUG2 = self._no_collide(grid_x, grid_y)
+                if not new_node._in_bounds(source_dir) or not self._no_collide(grid_x, grid_y):
+                    continue #This one is bad, but we keep trying.
+
                 #Draw it
                 tkinter_id = new_node.draw_circle(canvas, new_node.input_text) #I dont like calling draw_circle like this
                 
@@ -137,15 +147,12 @@ class Tree:
                 self._print_grid()
 
                 
-                #Queue it.
-                self.node_queue.append((new_node.x, new_node.y+VERTICAL_GAP))
-                self.node_queue.append((new_node.x-HORIZONTAL_GAP, new_node.y))
-                self.node_queue.append((new_node.x+HORIZONTAL_GAP, new_node.y))
-                self.node_queue.append((new_node.x, new_node.y-VERTICAL_GAP))
-
-            else:
-                new_node.x, new_node.y = -1, -1
-        
+                #Queue it
+                self.node_queue.append((new_node.x, new_node.y+VERTICAL_GAP, UP))
+                self.node_queue.append((new_node.x-HORIZONTAL_GAP, new_node.y, RIGHT))
+                self.node_queue.append((new_node.x+HORIZONTAL_GAP, new_node.y, LEFT))
+                self.node_queue.append((new_node.x, new_node.y-VERTICAL_GAP, DOWN))
+                break #Break if we found a coordinate. No need to keep pumping.
 
 
 class Node:
@@ -159,12 +166,30 @@ class Node:
     '''
     Calculate if this node is even drawable
     '''
-    def _in_bounds(self):
-        return self.y+RADIUS+VERTICAL_GAP <= 800 \
-            and self.x-RADIUS-HORIZONTAL_GAP-OFFSET >= 0 \
-            and self.x+RADIUS+OFFSET+HORIZONTAL_GAP <= 1000 \
-            and self.y-RADIUS-VERTICAL_GAP >= 0
-
+    def _in_bounds(self, source_dir):
+        if source_dir == UP: #Bottom half doesn't need to account for gap
+            return self.y+RADIUS <= 800 \
+                and self.x-RADIUS-OFFSET >= 0 \
+                and self.x+RADIUS+OFFSET <= 1000 \
+                and self.y-RADIUS-VERTICAL_GAP >= 0 
+        
+        if source_dir == RIGHT: #Left half doesn't need to account for gap
+            return self.y+RADIUS <= 800 \
+                and self.x-RADIUS-OFFSET >= 0 \
+                and self.x+RADIUS+HORIZONTAL_GAP+OFFSET <= 1000 \
+                and self.y-RADIUS >= 0
+        
+        if source_dir == LEFT: #Right half doesn't need to account for gap
+            return self.y+RADIUS <= 800 \
+                and self.x-RADIUS-HORIZONTAL_GAP-OFFSET >= 0 \
+                and self.x+RADIUS+OFFSET <= 1000 \
+                and self.y-RADIUS >= 0
+        
+        if source_dir == DOWN: #Top half doesn't need to account for gap.
+            return self.y+RADIUS+VERTICAL_GAP <= 800 \
+                and self.x-RADIUS-OFFSET >= 0 \
+                and self.x+RADIUS+OFFSET <= 1000 \
+                and self.y-RADIUS >= 0
     '''
     Draw point in the center of the node as a visual aid if needed.
     '''
@@ -305,75 +330,75 @@ tree.add_node(tree.root, "Linear Algebra27")
 tree.add_node(tree.root, "Linear Algebra28")
 tree.add_node(tree.root, "Linear Algebra29")
 tree.add_node(tree.root, "Linear Algebra30")
-# tree.add_node(tree.root, "Linear Algebra31")
-# tree.add_node(tree.root, "Linear Algebra32")
-# tree.add_node(tree.root, "Linear Algebra33")
-# tree.add_node(tree.root, "Linear Algebra34")
-# tree.add_node(tree.root, "Linear Algebra35")
-# tree.add_node(tree.root, "Linear Algebra36")
-# tree.add_node(tree.root, "Linear Algebra37")
-# tree.add_node(tree.root, "Linear Algebra38")
-# tree.add_node(tree.root, "Linear Algebra39")
-# tree.add_node(tree.root, "Linear Algebra40")
-# tree.add_node(tree.root, "Linear Algebra41")
-# tree.add_node(tree.root, "Linear Algebra42")
-# tree.add_node(tree.root, "Linear Algebra43")
-# tree.add_node(tree.root, "Linear Algebra44")
-# tree.add_node(tree.root, "Linear Algebra45")
-# tree.add_node(tree.root, "Linear Algebra46")
-# tree.add_node(tree.root, "Linear Algebra47")
-# tree.add_node(tree.root, "Linear Algebra48")
-# tree.add_node(tree.root, "Linear Algebra49")
-# tree.add_node(tree.root, "Linear Algebra50")
-# tree.add_node(tree.root, "Linear Algebra51")
-# tree.add_node(tree.root, "Linear Algebra52")
-# tree.add_node(tree.root, "Linear Algebra53")
-# tree.add_node(tree.root, "Linear Algebra54")
-# tree.add_node(tree.root, "Linear Algebra55")
-# tree.add_node(tree.root, "Linear Algebra56")
-# tree.add_node(tree.root, "Linear Algebra57")
-# tree.add_node(tree.root, "Linear Algebra58")
-# tree.add_node(tree.root, "Linear Algebra59")
-# tree.add_node(tree.root, "Linear Algebra60")
-# tree.add_node(tree.root, "Linear Algebra61")
-# tree.add_node(tree.root, "Linear Algebra62")
-# tree.add_node(tree.root, "Linear Algebra63")
-# tree.add_node(tree.root, "Linear Algebra64")
-# tree.add_node(tree.root, "Linear Algebra65")
-# tree.add_node(tree.root, "Linear Algebra66")
-# tree.add_node(tree.root, "Linear Algebra67")
-# tree.add_node(tree.root, "Linear Algebra68")
-# tree.add_node(tree.root, "Linear Algebra69")
-# tree.add_node(tree.root, "Linear Algebra70")
-# tree.add_node(tree.root, "Linear Algebra71")
-# tree.add_node(tree.root, "Linear Algebra72")
-# tree.add_node(tree.root, "Linear Algebra73")
-# tree.add_node(tree.root, "Linear Algebra74")
-# tree.add_node(tree.root, "Linear Algebra75")
-# tree.add_node(tree.root, "Linear Algebra76")
-# tree.add_node(tree.root, "Linear Algebra77")
-# tree.add_node(tree.root, "Linear Algebra78")
-# tree.add_node(tree.root, "Linear Algebra79")
-# tree.add_node(tree.root, "Linear Algebra80")
-# tree.add_node(tree.root, "Linear Algebra81")
-# tree.add_node(tree.root, "Linear Algebra82")
-# tree.add_node(tree.root, "Linear Algebra83")
-# tree.add_node(tree.root, "Linear Algebra84")
-# tree.add_node(tree.root, "Linear Algebra85")
-# tree.add_node(tree.root, "Linear Algebra86")
-# tree.add_node(tree.root, "Linear Algebra87")
-# tree.add_node(tree.root, "Linear Algebra88")
-# tree.add_node(tree.root, "Linear Algebra89")
-# tree.add_node(tree.root, "Linear Algebra90")
-# tree.add_node(tree.root, "Linear Algebra91")
-# tree.add_node(tree.root, "Linear Algebra92")
-# tree.add_node(tree.root, "Linear Algebra93")
-# tree.add_node(tree.root, "Linear Algebra94")
-# tree.add_node(tree.root, "Linear Algebra95")
-# tree.add_node(tree.root, "Linear Algebra96")
-# tree.add_node(tree.root, "Linear Algebra97")
-# tree.add_node(tree.root, "Linear Algebra98")
-# tree.add_node(tree.root, "Linear Algebra99")
+tree.add_node(tree.root, "Linear Algebra31")
+tree.add_node(tree.root, "Linear Algebra32")
+tree.add_node(tree.root, "Linear Algebra33")
+tree.add_node(tree.root, "Linear Algebra34")
+tree.add_node(tree.root, "Linear Algebra35")
+tree.add_node(tree.root, "Linear Algebra36")
+tree.add_node(tree.root, "Linear Algebra37")
+tree.add_node(tree.root, "Linear Algebra38")
+tree.add_node(tree.root, "Linear Algebra39")
+tree.add_node(tree.root, "Linear Algebra40")
+tree.add_node(tree.root, "Linear Algebra41")
+tree.add_node(tree.root, "Linear Algebra42")
+tree.add_node(tree.root, "Linear Algebra43")
+tree.add_node(tree.root, "Linear Algebra44")
+tree.add_node(tree.root, "Linear Algebra45")
+tree.add_node(tree.root, "Linear Algebra46")
+tree.add_node(tree.root, "Linear Algebra47")
+tree.add_node(tree.root, "Linear Algebra48")
+tree.add_node(tree.root, "Linear Algebra49")
+tree.add_node(tree.root, "Linear Algebra50")
+tree.add_node(tree.root, "Linear Algebra51")
+tree.add_node(tree.root, "Linear Algebra52")
+tree.add_node(tree.root, "Linear Algebra53")
+tree.add_node(tree.root, "Linear Algebra54")
+tree.add_node(tree.root, "Linear Algebra55")
+tree.add_node(tree.root, "Linear Algebra56")
+tree.add_node(tree.root, "Linear Algebra57")
+tree.add_node(tree.root, "Linear Algebra58")
+tree.add_node(tree.root, "Linear Algebra59")
+tree.add_node(tree.root, "Linear Algebra60")
+tree.add_node(tree.root, "Linear Algebra61")
+tree.add_node(tree.root, "Linear Algebra62")
+tree.add_node(tree.root, "Linear Algebra63")
+tree.add_node(tree.root, "Linear Algebra64")
+tree.add_node(tree.root, "Linear Algebra65")
+tree.add_node(tree.root, "Linear Algebra66")
+tree.add_node(tree.root, "Linear Algebra67")
+tree.add_node(tree.root, "Linear Algebra68")
+tree.add_node(tree.root, "Linear Algebra69")
+tree.add_node(tree.root, "Linear Algebra70")
+tree.add_node(tree.root, "Linear Algebra71")
+tree.add_node(tree.root, "Linear Algebra72")
+tree.add_node(tree.root, "Linear Algebra73")
+tree.add_node(tree.root, "Linear Algebra74")
+tree.add_node(tree.root, "Linear Algebra75")
+tree.add_node(tree.root, "Linear Algebra76")
+tree.add_node(tree.root, "Linear Algebra77")
+tree.add_node(tree.root, "Linear Algebra78")
+tree.add_node(tree.root, "Linear Algebra79")
+tree.add_node(tree.root, "Linear Algebra80")
+tree.add_node(tree.root, "Linear Algebra81")
+tree.add_node(tree.root, "Linear Algebra82")
+tree.add_node(tree.root, "Linear Algebra83")
+tree.add_node(tree.root, "Linear Algebra84")
+tree.add_node(tree.root, "Linear Algebra85")
+tree.add_node(tree.root, "Linear Algebra86")
+tree.add_node(tree.root, "Linear Algebra87")
+tree.add_node(tree.root, "Linear Algebra88")
+tree.add_node(tree.root, "Linear Algebra89")
+tree.add_node(tree.root, "Linear Algebra90")
+tree.add_node(tree.root, "Linear Algebra91")
+tree.add_node(tree.root, "Linear Algebra92")
+tree.add_node(tree.root, "Linear Algebra93")
+tree.add_node(tree.root, "Linear Algebra94")
+tree.add_node(tree.root, "Linear Algebra95")
+tree.add_node(tree.root, "Linear Algebra96")
+tree.add_node(tree.root, "Linear Algebra97")
+tree.add_node(tree.root, "Linear Algebra98")
+tree.add_node(tree.root, "Linear Algebra99")
 
 
 # create_circle(half_width, half_height, canvas, "Differential Equations")
