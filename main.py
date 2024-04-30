@@ -1,10 +1,67 @@
 from tkinter import *
+from tkinter import font as tkFont
 from math import ceil, floor
+from PIL import Image, ImageTk
 
 root = Tk()
-root.geometry("1000x800")
-canvas = Canvas(root, width=1000, height=800)
-canvas.pack()
+root.geometry("1200x800")
+canvas = Canvas(root, width = 1100 - 120, height = 800)
+canvas.pack(side = RIGHT, fill = BOTH, expand = True)
+
+frame = Frame(root,bg='orange',width=200,height=800)
+frame.pack(side=LEFT)
+frame.columnconfigure(0, weight = 1)
+frame.rowconfigure(2, weight=1)
+frame.rowconfigure(1, weight=1)
+
+back_button = Button(frame, relief='flat', bg='orange', text='Back', height=5)
+back_button.grid(row=0, column=0, sticky="ew")
+helv36 = tkFont.Font(family='Helvetica', size=24)
+back_button['font'] = helv36
+
+button_frame = Frame(frame, bg="orange")
+button_frame.grid(row=1, column=0)
+
+left_icon = ImageTk.PhotoImage(Image.open('icons/leftarrow.png').resize((30,30)))
+right_icon = ImageTk.PhotoImage(Image.open('icons/rightarrow.png').resize((30,30)))
+left_button = Button(button_frame, relief='flat', bg='orange')
+right_button = Button(button_frame, relief='flat', bg='orange')
+left_button.config(image=left_icon)
+left_button.image = left_icon
+right_button.config(image=right_icon)
+right_button.image = right_icon
+left_button.grid(row = 0, column = 0)
+right_button.grid(row = 0, column = 1)
+
+
+depth_label = Label(frame, text = "Depth=13", bg='orange',font=('Helvetica', 20))
+depth_label.grid(row = 2, column = 0, sticky="s")
+
+
+frame.grid_propagate(False)
+# import tkinter as tk
+# from tkinter import *
+# from PIL import Image, ImageTk
+# root = tk.Tk()
+# def change_i():
+#     if sound_btn.image == icon:
+#         #start_recording()
+
+#         sound_btn.config(image=icon2)
+#         sound_btn.image = icon2
+#     else:
+#         #stop_recording()
+
+#         sound_btn.config(image=icon)
+#         sound_btn.image = icon
+
+# icon = PhotoImage(file='dh.png')
+# icon2 = PhotoImage(file='stop.png')
+
+# sound_btn = tk.Button(root, image=icon, width=70,height=60,relief=FLAT ,command=change_i )
+# sound_btn.image = icon
+# sound_btn.grid(row=0, column=1)
+# root.mainloop()
 
 RADIUS = 50
 OFFSET = 70
@@ -53,7 +110,6 @@ class Tree:
         self.tkinter_nodes_to_ids[tkinter_id] = root
         #Grid it
         self.grid[self._determine_row(root.y)][self._determine_col(root.x)] = 1
-        self._print_grid()
 
         #Queue it
         self.node_queue.append((root.x, root.y+VERTICAL_GAP, UP))
@@ -144,7 +200,6 @@ class Tree:
 
                 #Grid it. 
                 self.grid[grid_y][grid_x] = 1
-                self._print_grid()
 
                 
                 #Queue it
@@ -401,17 +456,8 @@ tree.add_node(tree.root, "Linear Algebra98")
 tree.add_node(tree.root, "Linear Algebra99")
 
 
-# create_circle(half_width, half_height, canvas, "Differential Equations")
-# add_node(canvas, "Differential Equations1")
-# add_node(canvas, "Differential Equations2")
-# add_node(canvas, "Differential Equations3")
-# add_node(canvas, "Differential Equations4")
 
 root.mainloop()
-
-#Bug: No spaces breaks it
-
-
 
 
 # from tkinter import *
