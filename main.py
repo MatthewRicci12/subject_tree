@@ -7,45 +7,11 @@ from tree_and_node import *
 
 
 
-
+top = None
 newWindow = None
 cur_tree = None
 top_node_exists = False
 
-def init_frame(root):
-    global cur_tree
-
-    frame = Frame(root,bg='orange',width=200,height=800)
-    frame.pack(side=LEFT)
-    frame.columnconfigure(0, weight = 1)
-    frame.rowconfigure(2, weight=1)
-    frame.rowconfigure(1, weight=1)
-
-    back_button = Button(frame, relief='flat', bg='orange', text='Back', height=5)
-    back_button.grid(row=0, column=0, sticky="ew")
-    helv36 = tkFont.Font(family='Helvetica', size=24)
-    back_button['font'] = helv36
-
-    button_frame = Frame(frame, bg="orange")
-    button_frame.grid(row=1, column=0)
-
-    left_icon = ImageTk.PhotoImage(Image.open('icons/leftarrow.png').resize((30,30)))
-    right_icon = ImageTk.PhotoImage(Image.open('icons/rightarrow.png').resize((30,30)))
-    left_button = Button(button_frame, relief='flat', bg='orange')
-    right_button = Button(button_frame, relief='flat', bg='orange')
-    left_button.config(image=left_icon)
-    left_button.image = left_icon
-    right_button.config(image=right_icon)
-    right_button.image = right_icon
-    left_button.grid(row = 0, column = 0)
-    right_button.grid(row = 0, column = 1)
-
-
-    depth_label = Label(frame, text = "Depth={}".format(cur_tree.central_node.depth), bg='orange',font=('Helvetica', 20))
-    depth_label.grid(row = 2, column = 0, sticky="s")
-
-
-    frame.grid_propagate(False)
 
 
 def create_cur_tree(inputtxt, canvas, win):
@@ -56,15 +22,17 @@ def create_cur_tree(inputtxt, canvas, win):
     init_frame(newWindow)
 
 
-        #DO stuff here
+    #DO stuff here
     for i in range(1, 100):
         cur_tree.add_node(canvas, cur_tree.root, "Linear Algebra{}".format(i))
+
 
 def make_new_tree():
 
     global newWindow, top, cur_tree, top_node_exists
 
     top.destroy()
+    top = None
 
     newWindow = Tk()
     newWindow.geometry("1000x600")
@@ -87,7 +55,65 @@ def make_new_tree():
 
     newWindow.mainloop()  
 
-    
+
+def return_to_main_menu():
+    global newWindow, cur_tree, top_node_exists, top
+
+    newWindow.destroy()
+    newWindow = None
+    cur_tree = None
+    top_node_exists = False
+    top = Tk()
+    top.geometry("600x600")
+
+    make_new_tree_button = Button(top, text ="Make new tree", command = make_new_tree)
+    load_existing_tree_button = Button(top, text ="Load existing tree", command = load_existing_tree)
+    make_new_tree_button.place(x=50,y=50)
+    load_existing_tree_button.place(x=50, y=100)
+
+    top.mainloop()
+
+
+def move_left():
+    pass
+
+def move_right():
+    pass
+
+def init_frame(root):
+    global cur_tree
+
+    frame = Frame(root,bg='orange',width=200,height=800)
+    frame.pack(side=LEFT)
+    frame.columnconfigure(0, weight = 1)
+    frame.rowconfigure(2, weight=1)
+    frame.rowconfigure(1, weight=1)
+
+    back_button = Button(frame, relief='flat', bg='orange', text='Back', height=5, command=return_to_main_menu)
+    back_button.grid(row=0, column=0, sticky="ew")
+    helv36 = tkFont.Font(family='Helvetica', size=24)
+    back_button['font'] = helv36
+
+    button_frame = Frame(frame, bg="orange")
+    button_frame.grid(row=1, column=0)
+
+    left_icon = ImageTk.PhotoImage(Image.open('icons/leftarrow.png').resize((30,30)))
+    right_icon = ImageTk.PhotoImage(Image.open('icons/rightarrow.png').resize((30,30)))
+    left_button = Button(button_frame, relief='flat', bg='orange', command=move_left)
+    right_button = Button(button_frame, relief='flat', bg='orange', command=move_right)
+    left_button.config(image=left_icon)
+    left_button.image = left_icon
+    right_button.config(image=right_icon)
+    right_button.image = right_icon
+    left_button.grid(row = 0, column = 0)
+    right_button.grid(row = 0, column = 1)
+
+
+    depth_label = Label(frame, text = "Depth={}".format(cur_tree.central_node.depth), bg='orange',font=('Helvetica', 20))
+    depth_label.grid(row = 2, column = 0, sticky="s")
+
+
+    frame.grid_propagate(False)
 
 
 def load_existing_tree():

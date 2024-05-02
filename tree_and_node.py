@@ -26,15 +26,14 @@ half_height = 400
 
 class Tree:
     
-    grid = [[0 for _ in range(5)] for __ in range(7)]
-    tkinter_nodes_to_ids = {}
-    #Stores tuples of: (next node x, next node y, where it came FROM)
-    node_queue = []
-    central_node = None
-
     def __init__(self, canvas, input_text):
         root = Node(input_text, 0, half_width, half_height)
         self.root = root
+        self.central_node = root
+
+        self.grid = [[0 for _ in range(5)] for __ in range(7)]
+        self.tkinter_nodes_to_ids = {}
+        self.node_queue = []
         self.central_node = root
 
         #Draw it
