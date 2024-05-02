@@ -50,6 +50,8 @@ class Tree:
         self.node_queue.append((root.x, root.y-VERTICAL_GAP, DOWN_DIR))
 
 
+
+
     def _determine_row(self, y):
         root_y = self.root.y
 
@@ -93,20 +95,12 @@ class Tree:
 
     def _no_collide(self, grid_x, grid_y):
         return self.grid[grid_y][grid_x] == 0  
+    
 
-    '''
-    Make new Node, add child no matter what.
 
-    If parent_node is central node, we populate its
-    x and y based on what we pop off the queue. We also
-    have the notion of an equivalent "grid" x and y.
-
-    Now that it has an x and a y: If it's in bounds:
-        draw it, map it, grid it, queue it.
-    '''
-    def add_node(self, canvas, parent_node, input_text):
-        new_node = Node(input_text, parent_node.depth+1)
-        parent_node.add_child(new_node)
+    def add_existing_node(self, canvas, parent_node, new_node, do_add_child=True):
+        if do_add_child:
+            parent_node.add_child(new_node)
 
         if parent_node is self.central_node:
             '''
@@ -119,8 +113,6 @@ class Tree:
                 new_node.x, new_node.y, source_dir = self.node_queue.pop(0)
                 grid_x, grid_y = self._determine_col(new_node.x), self._determine_row(new_node.y)
 
-                DEBUG1 = new_node._in_bounds(source_dir)
-                #DEBUG2 = self._no_collide(grid_x, grid_y)
                 if not new_node._in_bounds(source_dir) or not self._no_collide(grid_x, grid_y):
                     continue #This one is bad, but we keep trying.
 
@@ -141,6 +133,49 @@ class Tree:
                 self.node_queue.append((new_node.x, new_node.y-VERTICAL_GAP, DOWN_DIR))
                 break #Break if we found a coordinate. No need to keep pumping.
 
+    '''
+    Make new Node, add child no matter what.
+
+    If parent_node is central node, we populate its
+    x and y based on what we pop off the queue. We also
+    have the notion of an equivalent "grid" x and y.
+
+    Now that it has an x and a y: If it's in bounds:
+        draw it, map it, grid it, queue it.
+    '''
+    def add_node(self, canvas, parent_node, input_text):
+        new_node = Node(input_text, parent_node.depth+1)
+        self.add_existing_node(canvas, parent_node, new_node)
+
+
+    def redraw(self, canvas):
+        #Constructor, except we already know root.
+        self.grid = [[0 for _ in range(5)] for __ in range(7)]
+        self.tkinter_nodes_to_ids = {}
+        self.node_queue = []
+        root = self.central_node
+
+        #Draw it
+        tkinter_id = root.draw_circle(canvas, root.input_text)
+        #Map it
+        self.tkinter_nodes_to_ids[tkinter_id] = root
+        #Grid it
+        self.grid[self._determine_row(root.y)][self._determine_col(root.x)] = 1
+
+        #Queue it
+        self.node_queue.append((root.x, root.y+VERTICAL_GAP, UP_DIR))
+        self.node_queue.append((root.x-HORIZONTAL_GAP, root.y, RIGHT_DIR))
+        self.node_queue.append((root.x+HORIZONTAL_GAP, root.y, LEFT_DIR))
+        self.node_queue.append((root.x, root.y-VERTICAL_GAP, DOWN_DIR))
+
+
+        children = self.central_node.children
+        num_children = len(children)
+        sws = self.central_node.sliding_window_start
+        for i in range(sws, sws+35):
+            self.add_existing_node(canvas, self.central_node, children[i % num_children], False)
+
+        canvas.update()
 
 class Node:
     '''
@@ -280,3 +315,4 @@ class Node:
         self.depth = depth
         self.next_child = DOWN_DIR
         self.tkinter_id = None
+        self.sliding_window_start = 0

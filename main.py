@@ -19,7 +19,7 @@ def create_cur_tree(inputtxt, canvas, win):
 
     cur_tree = Tree(canvas, inputtxt)
     win.destroy()
-    init_frame(newWindow)
+    init_frame(newWindow, canvas)
 
 
     #DO stuff here
@@ -74,13 +74,20 @@ def return_to_main_menu():
     top.mainloop()
 
 
-def move_left():
-    pass
+def move(amount, canvas):
+    central_node = cur_tree.central_node
+    if len(central_node.children) < 35:
+        return
+    central_node.sliding_window_start += amount
+    cur_tree.redraw(canvas)
+    
 
-def move_right():
-    pass
 
-def init_frame(root):
+# Grab the central node
+# Advance its sliding window by 5 if we’re moving right, or by -5 if we’re moving left
+# Immediately call redraw on the current tree.
+
+def init_frame(root, canvas):
     global cur_tree
 
     frame = Frame(root,bg='orange',width=200,height=800)
@@ -99,8 +106,8 @@ def init_frame(root):
 
     left_icon = ImageTk.PhotoImage(Image.open('icons/leftarrow.png').resize((30,30)))
     right_icon = ImageTk.PhotoImage(Image.open('icons/rightarrow.png').resize((30,30)))
-    left_button = Button(button_frame, relief='flat', bg='orange', command=move_left)
-    right_button = Button(button_frame, relief='flat', bg='orange', command=move_right)
+    left_button = Button(button_frame, relief='flat', bg='orange', command=lambda canvas=canvas: move(-5, canvas))
+    right_button = Button(button_frame, relief='flat', bg='orange', command=lambda canvas=canvas: move(5, canvas))
     left_button.config(image=left_icon)
     left_button.image = left_icon
     right_button.config(image=right_icon)
