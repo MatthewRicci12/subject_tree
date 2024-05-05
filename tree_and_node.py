@@ -54,36 +54,16 @@ class Tree:
 
     def _determine_row(self, y):
         root_y = self.root.y
-
         deviations = 0
-
-        if y > root_y:
-            while y != root_y:
-                y -= VERTICAL_GAP
-                deviations += 1
-        else:
-            while y != root_y:
-                y += VERTICAL_GAP
-                deviations -= 1
-
-        return 7//2+deviations
+        delta = y - root_y
+        return 7//2+delta//VERTICAL_GAP
 
 
     def _determine_col(self, x):
         root_x = self.root.x
-
         deviations = 0
-
-        if x > root_x:
-            while x != root_x:
-                x -= HORIZONTAL_GAP
-                deviations += 1
-        else:
-            while x != root_x:
-                x += HORIZONTAL_GAP
-                deviations -= 1
-
-        return 5//2+deviations
+        delta = x - root_x
+        return 5//2+delta//HORIZONTAL_GAP
 
     def _print_grid(self):
         s = [[str(e) for e in row] for row in self.grid]
@@ -96,8 +76,6 @@ class Tree:
     def _no_collide(self, grid_x, grid_y):
         return self.grid[grid_y][grid_x] == 0  
     
-
-
     def add_existing_node(self, canvas, parent_node, new_node, do_add_child=True):
         if do_add_child:
             parent_node.add_child(new_node)
@@ -178,13 +156,6 @@ class Tree:
         canvas.update()
 
 class Node:
-    '''
-    Change highlighted node and advance this
-    node's next chosen child.
-    '''
-    def _increment_child(self):
-        pass
-
     '''
     Calculate if this node is even drawable
     '''
@@ -285,6 +256,7 @@ class Node:
         y1 = self.y+RADIUS
 
         id = canvas.create_oval(x0, y0, x1+OFFSET, y1, fill="white")
+        self.tkinter_id = id
         input_text = self._process_text(input_text)
         canvas.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
         self._draw_point(x1-15, y1-RADIUS, canvas)
@@ -313,6 +285,5 @@ class Node:
         self.input_text = input_text
         self.children = []
         self.depth = depth
-        self.next_child = DOWN_DIR
         self.tkinter_id = None
         self.sliding_window_start = 0
