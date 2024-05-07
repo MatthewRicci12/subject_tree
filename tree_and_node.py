@@ -1,3 +1,5 @@
+from tkinter import *
+from tkinter import messagebox
 
 RADIUS = 50
 OFFSET = 70
@@ -26,10 +28,35 @@ half_height = 400
 
 class Tree:
     
-    def __init__(self, canvas, input_text):
+    def popup(self): 
+        messagebox.showinfo("",  "ID of clicked widget: {}".format(self.clicked)) 
+
+    def show_popup_menu(self, event, id):
+        self.clicked = id
+        try: 
+            self.popup_menu.tk_popup(event.x_root, event.y_root) 
+        finally: 
+            self.popup_menu.grab_release() 
+
+
+    def init_popup_menu(self):
+        self.popup_menu = Menu(self.window, tearoff = 0)
+
+        self.popup_menu.add_command(label = "Add child node", command = self.popup)
+        self.popup_menu.add_command(label = "Batch add child node", command = self.popup)
+        self.popup_menu.add_command(label = "Delete node", command = self.popup)
+        self.popup_menu.add_command(label = "Change style", command = self.popup)
+        self.popup_menu.add_command(label = "Mark as done", command = self.popup)
+        self.popup_menu.add_command(label = "Go to parent", command = self.popup)
+        
+
+    def __init__(self, canvas, input_text, window): #Maybe more like canvas_ref? And make it a member?
         root = Node(input_text, 0, half_width, half_height)
         self.root = root
         self.central_node = root
+        self.window = window
+        self.init_popup_menu()
+
 
         self.grid = [[0 for _ in range(5)] for __ in range(7)]
         self.tkinter_nodes_to_ids = {}
@@ -40,6 +67,7 @@ class Tree:
         tkinter_id = root.draw_circle(canvas, input_text)
         #Map it
         self.tkinter_nodes_to_ids[tkinter_id] = root
+        canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
         #Grid it
         self.grid[self._determine_row(root.y)][self._determine_col(root.x)] = 1
 
