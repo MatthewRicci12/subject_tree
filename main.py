@@ -1,7 +1,8 @@
-from tkinter import *
+#from tkinter import *
 from tkinter import font as tkFont
 from math import ceil, floor
-from PIL import Image, ImageTk
+import PIL.Image
+import PIL.ImageTk
 from tree_and_node import *
 
 
@@ -29,8 +30,8 @@ class App:
 
 
     def create_cur_tree(self, subject):
-        self.cur_tree = Tree(self.canvas, subject)
-        self.tree_creation_dialog.destroy()
+        self.cur_tree = Tree(self.canvas, subject, self.tree_window)
+        #self.tree_creation_dialog.destroy()
         self.init_side_frame()
 
         #DO stuff here
@@ -62,8 +63,8 @@ class App:
         self.button_frame = Frame(self.frame, bg="orange")
         self.button_frame.grid(row=1, column=0)
 
-        self.left_icon = ImageTk.PhotoImage(Image.open('icons/leftarrow.png').resize((30,30)))
-        self.right_icon = ImageTk.PhotoImage(Image.open('icons/rightarrow.png').resize((30,30)))
+        self.left_icon = PIL.ImageTk.PhotoImage(PIL.Image.open('icons/leftarrow.png').resize((30,30)))
+        self.right_icon = PIL.ImageTk.PhotoImage(PIL.Image.open('icons/rightarrow.png').resize((30,30)))
         self.left_button = Button(self.button_frame, relief='flat', bg='orange', command=lambda \
                                                         canvas=self.canvas: self.move(-5))
         self.right_button = Button(self.button_frame, relief='flat', bg='orange', command=lambda \
@@ -126,11 +127,17 @@ class App:
         self.main_menu.mainloop()
 
     def __init__(self):
-        self.top_node_exists = False
-        self.init_main_menu()
+        # self.top_node_exists = False
+        # self.init_main_menu()
+        self.tree_window = Tk()
+        self.tree_window.geometry("1000x600")
+        self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800)
+        self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)
+        self.create_cur_tree("za")
 
     def run(self):
-        self.main_menu.mainloop()
+        self.tree_window.mainloop()
+        #self.main_menu.mainloop()
 
 
 def main():
