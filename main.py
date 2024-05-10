@@ -33,8 +33,8 @@ class App:
         self.cur_tree = Tree(self.canvas, subject, self.tree_window)
 
         #DO stuff here
-        for i in range(1, 5):
-            self.cur_tree.add_node(self.cur_tree.root, "Linear Algebra{}".format(i))
+        # for i in range(1, 5):
+        #     self.cur_tree.add_node(self.cur_tree.root, "Linear Algebra{}".format(i))
 
 
 
@@ -50,30 +50,30 @@ class App:
 
     def make_new_tree(self):
 
-        # self.main_menu.destroy()
-        # self.main_menu = None
+        self.main_menu.destroy() #1
+        self.main_menu = None#1
 
         self.tree_window = Tk()
         self.tree_window.geometry("1000x600")
         self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800)
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)
 
-        # if not self.top_node_exists:
-        #     self.tree_creation_dialog = Toplevel(takefocus=True)
-        #     self.tree_creation_dialog.attributes("-topmost", True)
-        #     self.tree_creation_dialog.grab_set()
+        if not self.top_node_exists: #1
+            self.tree_creation_dialog = Toplevel(takefocus=True) #1
+            self.tree_creation_dialog.attributes("-topmost", True) #1
+            self.tree_creation_dialog.grab_set() #1
 
-        #     subject = StringVar()
-        #     self.inputtxt = Entry(self.tree_creation_dialog, textvariable=subject) 
-        #     self.inputtxt.pack() 
-        #     self.printButton = Button(self.tree_creation_dialog, text = "Submit", \
-        #                         command = lambda subject=subject, canvas=self.canvas, \
-        #                         tree_creation_dialog=self.tree_creation_dialog: \
-        #                         self.create_cur_tree(subject.get())) 
-        #     self.printButton.pack()
-        #     self.top_node_exists = True
+            subject = StringVar() #1
+            self.inputtxt = Entry(self.tree_creation_dialog, textvariable=subject) #1
+            self.inputtxt.pack()  #1
+            self.printButton = Button(self.tree_creation_dialog, text = "Submit", \
+                                command = lambda subject=subject, canvas=self.canvas, \
+                                tree_creation_dialog=self.tree_creation_dialog: \
+                                self.create_cur_tree(subject.get()))  #1
+            self.printButton.pack() #1
+            self.top_node_exists = True #1
 
-        self.create_cur_tree("asdf") #delete when done
+        #self.create_cur_tree("asdf") #delete when done #2
 
         self.tree_window.mainloop()  
 
@@ -92,17 +92,17 @@ class App:
         self.main_menu.mainloop()
 
     def __init__(self):
-        self.make_new_tree()
-        # self.top_node_exists = False
-        # self.init_main_menu()
-        # self.tree_window = Tk()
-        # self.tree_window.geometry("1000x600")
-        # self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800)
-        # self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)
+        #self.make_new_tree() #2
+        self.top_node_exists = False #1
+        self.init_main_menu() #1
+        self.tree_window = Tk() #1
+        self.tree_window.geometry("1000x600") #1
+        self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800) #1
+        self.canvas.pack(side = RIGHT, fill = BOTH, expand = True) #1
 
     def run(self):
-        self.tree_window.mainloop()
-        #self.main_menu.mainloop()
+        #self.tree_window.mainloop() #2
+        self.main_menu.mainloop() #1
 
 
 def main():
