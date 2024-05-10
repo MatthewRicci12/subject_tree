@@ -186,6 +186,7 @@ class Tree:
         #Map it
         self.tkinter_nodes_to_ids[tkinter_id] = root
         self.canvas_ref.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
+        self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.change_root(_, tkinter_id))                
         #Grid it
         self.grid[self._determine_row(root.y)][self._determine_col(root.x)] = 1
 
@@ -222,6 +223,15 @@ class Tree:
     def _no_collide(self, grid_x, grid_y):
         return self.grid[grid_y][grid_x] == 0  
     
+    def change_root(self, event, tkinter_id):
+        node_ref = self.tkinter_nodes_to_ids[tkinter_id]  
+        self.central_node = node_ref
+        self.central_node.x = half_width
+        self.central_node.y = half_height        
+        self.redraw()
+
+
+    
     def add_existing_node(self, parent_node, new_node, do_add_child=True):
         if do_add_child:
             parent_node.add_child(new_node)
@@ -243,6 +253,7 @@ class Tree:
                 #Draw it
                 tkinter_id = new_node.draw_circle(self.canvas_ref, new_node.input_text) #I dont like calling draw_circle like this
                 self.canvas_ref.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
+                self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.change_root(_, tkinter_id))                
                 #Map it
                 self.tkinter_nodes_to_ids[tkinter_id] = new_node
 
@@ -284,6 +295,7 @@ class Tree:
         #Draw it
         tkinter_id = root.draw_circle(self.canvas_ref, root.input_text)
         self.canvas_ref.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
+        self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.change_root(_, tkinter_id))                
         self.depth_label.config(text = "Depth={}".format(self.central_node.depth))
         #Map it
         self.tkinter_nodes_to_ids[tkinter_id] = root
