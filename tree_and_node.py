@@ -3,6 +3,7 @@ from tkinter import messagebox
 from tkinter import font as tkFont
 import PIL.Image
 import PIL.ImageTk
+import random
 
 RADIUS = 50
 OFFSET = 70
@@ -30,6 +31,25 @@ half_width = 500
 half_height = 400
 
 class Tree:
+
+    def mouse_click(self, event, tkinter_id):
+        '''  delay mouse action to allow for double click to occur
+        '''
+        self.clicked = tkinter_id
+        self.canvas_ref.after(300, self.mouse_action, event)
+
+
+    def double_click(self, event):
+        self.double_click_flag = True
+        
+    def mouse_action(self, event):
+        id = self.clicked
+        if self.double_click_flag:
+            self.double_click_flag = False
+            self.invoke_notes(id)
+        else:
+            self.change_root(id)
+    
 
     def return_to_main_menu():
         pass
@@ -140,9 +160,6 @@ class Tree:
         self.redraw()
             
         
-
-
-    
     def popup(self): 
         messagebox.showinfo("",  "ID of clicked widget: {}".format(self.clicked)) 
 
@@ -163,6 +180,10 @@ class Tree:
         self.popup_menu.add_command(label = "Change style", command = self.popup)
         self.popup_menu.add_command(label = "Mark as done", command = self.popup)
         self.popup_menu.add_command(label = "Go to parent", command = self.menu_go_to_parent)
+
+    def invoke_notes(self, tkinter_id):
+        node_ref = self.tkinter_nodes_to_ids[tkinter_id]
+        node_ref.open_notes_menu()
         
 
     def __init__(self, canvas_ref, input_text, window_ref): #Maybe more like canvas_ref? And make it a member?
@@ -186,7 +207,8 @@ class Tree:
         #Map it
         self.tkinter_nodes_to_ids[tkinter_id] = root
         self.canvas_ref.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
-        self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.change_root(_, tkinter_id))                
+        self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.mouse_click(_, tkinter_id))             
+        self.canvas_ref.tag_bind(tkinter_id, '<Double-Button-1>', lambda _: self.double_click(_))                   
         #Grid it
         self.grid[self._determine_row(root.y)][self._determine_col(root.x)] = 1
 
@@ -196,6 +218,7 @@ class Tree:
         self.node_queue.append((root.x+HORIZONTAL_GAP, root.y, LEFT_DIR))
         self.node_queue.append((root.x, root.y-VERTICAL_GAP, DOWN_DIR))
 
+        self.double_click_flag = False
 
 
 
@@ -223,7 +246,7 @@ class Tree:
     def _no_collide(self, grid_x, grid_y):
         return self.grid[grid_y][grid_x] == 0  
     
-    def change_root(self, event, tkinter_id):
+    def change_root(self, tkinter_id):
         node_ref = self.tkinter_nodes_to_ids[tkinter_id]  
         self.central_node = node_ref
         self.central_node.x = half_width
@@ -253,7 +276,8 @@ class Tree:
                 #Draw it
                 tkinter_id = new_node.draw_circle(self.canvas_ref, new_node.input_text) #I dont like calling draw_circle like this
                 self.canvas_ref.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
-                self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.change_root(_, tkinter_id))                
+                self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.mouse_click(_, tkinter_id))             
+                self.canvas_ref.tag_bind(tkinter_id, '<Double-Button-1>', lambda _: self.double_click(_))  
                 #Map it
                 self.tkinter_nodes_to_ids[tkinter_id] = new_node
 
@@ -295,7 +319,8 @@ class Tree:
         #Draw it
         tkinter_id = root.draw_circle(self.canvas_ref, root.input_text)
         self.canvas_ref.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
-        self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.change_root(_, tkinter_id))                
+        self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.mouse_click(_, tkinter_id))             
+        self.canvas_ref.tag_bind(tkinter_id, '<Double-Button-1>', lambda _: self.double_click(_))                   
         self.depth_label.config(text = "Depth={}".format(self.central_node.depth))
         #Map it
         self.tkinter_nodes_to_ids[tkinter_id] = root
@@ -317,6 +342,25 @@ class Tree:
         self.canvas_ref.update()
 
 class Node:
+
+    def open_notes_menu(self):
+        self.notes_menu = Toplevel(takefocus=True)
+        self.notes_menu.attributes("-topmost", True)
+        self.notes_menu.grab_set()
+        self.notes_menu.geometry("1200x800")
+
+        self.frame = Frame(self.notes_menu, width=1200, height=30, bg="orange")
+        self.frame.pack(fill=X)
+
+        self.add_node_button = Button(self.frame, text = "Add Note", bg='orange',font=('Helvetica', 12), \
+                                      relief='flat', command = self.add_note)
+        self.add_node_button.pack(side=TOP)
+
+        self.frame2 = Frame(self.notes_menu)
+        self.frame2.pack(fill = BOTH, expand = True)  
+
+        self.frame.pack_propagate(False)
+
     '''
     Calculate if this node is even drawable
     '''
@@ -449,3 +493,47 @@ class Node:
         self.depth = depth
         self.tkinter_id = None
         self.sliding_window_start = 0
+        self.notes = None
+
+    def create_note(self, note_type_input):
+        self.add_note_dialog.destroy()
+        self.notes = Note(self.frame2, note_type_input)
+
+
+    def add_note(self):
+        self.add_note_dialog = Toplevel(takefocus=True)
+        self.add_note_dialog.attributes("-topmost", True)
+        self.add_note_dialog.grab_set()
+
+        note_type_label = Label(self.add_note_dialog, text="Enter the type of note")
+        note_title = StringVar()
+        note_type = StringVar()
+        note_type_input = Entry(self.add_note_dialog, textvariable=note_type)
+        note_type_label.pack()
+        note_type_input.pack()
+        submit_button = Button(self.add_note_dialog, text="Submit", command=lambda note_type_input=note_type_input:self.create_note(note_type_input.get()))
+        submit_button.pack()
+
+
+class Note:
+    def popup_textbox(self, event):
+        win = Toplevel(takefocus=True)
+        win.attributes("-topmost", True)
+        win.grab_set()
+        self.contents = Text(win)
+        self.contents.pack(side = RIGHT, fill = BOTH, expand = True)
+
+
+    def get_random_color(self):
+        return "#{:02x}{:02x}{:02x}".format(random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
+
+    def __init__(self, frame, note_type_input):
+        #self.note_title_input = note_title_input
+        self.note_type_input = note_type_input
+
+        self.label = Label(frame, text=note_type_input, font=("Times New Roman", 14, "bold"), fg=self.get_random_color(), borderwidth=2, relief="groove")
+        self.label.pack(padx=5, anchor="w")
+        self.textbox = Text(frame, borderwidth=1, relief="solid", height=8) #T = Text(root, bg, fg, bd, height, width, font, ..) 
+        self.textbox.configure(state="disabled")
+        self.textbox.pack(fill=X, padx=(5, 5), pady=(0, 3)) #Order: (left, right) (up, down)
+        self.textbox.bind("<Button-1>", self.popup_textbox)
