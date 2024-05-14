@@ -30,6 +30,7 @@ class App:
 
 
     def create_cur_tree(self, subject):
+        self.tree_creation_dialog.destroy()
         self.cur_tree = Tree(self.canvas, subject, self.tree_window)
 
         #DO stuff here
@@ -75,8 +76,8 @@ class App:
 
         #self.create_cur_tree("asdf") #delete when done #2
 
-        self.tree_window.mainloop()  
-
+        self.tree_window.mainloop()
+        main()
 
     def init_main_menu(self):
         self.main_menu = Tk()
@@ -89,16 +90,10 @@ class App:
         self.make_new_tree_button.place(x=50,y=50)
         self.load_existing_tree_button.place(x=50, y=100)
 
-        self.main_menu.mainloop()
-
     def __init__(self):
         #self.make_new_tree() #2
         self.top_node_exists = False #1
         self.init_main_menu() #1
-        self.tree_window = Tk() #1
-        self.tree_window.geometry("1000x600") #1
-        self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800) #1
-        self.canvas.pack(side = RIGHT, fill = BOTH, expand = True) #1
 
     def run(self):
         #self.tree_window.mainloop() #2
