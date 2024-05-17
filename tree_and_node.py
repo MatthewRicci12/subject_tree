@@ -4,6 +4,7 @@ from tkinter import font as tkFont
 import PIL.Image
 import PIL.ImageTk
 import random
+import pickle
 
 RADIUS = 50
 OFFSET = 70
@@ -54,21 +55,37 @@ class Tree:
     def return_to_main_menu():
         pass
 
+    def serialization_dict(self):
+        keys_to_pickle = {"root" : self.root.serialization_dict()}
+        return keys_to_pickle
+
+    def save_tree(self):
+        with open("saved_trees/{}.pickle".format(self.root.input_text), "wb") as outfile:
+            pickle.dump(self.serialization_dict(), outfile)
+
+
     def init_side_frame(self):
         self.frame = Frame(self.window_ref,bg='orange',width=200,height=800)
         self.frame.pack(side=LEFT)
         self.frame.columnconfigure(0, weight = 1)
+        self.frame.rowconfigure(3, weight=1)
         self.frame.rowconfigure(2, weight=1)
         self.frame.rowconfigure(1, weight=1)
 
-        self.back_button = Button(self.frame, relief='flat', bg='orange', text='Back', height=5, \
-                                  command=self.return_to_main_menu)
+        self.back_button = Button(self.frame, relief='flat', bg='orange', text='Back', \
+                                  command=self.save_tree)
         self.back_button.grid(row=0, column=0, sticky="ew")
         helv36 = tkFont.Font(family='Helvetica', size=24)
         self.back_button['font'] = helv36
 
+        self.save_button = Button(self.frame, relief='flat', bg='orange', text='Save Tree', height=1, \
+                                  command=self.save_tree, pady=1)
+        self.save_button.grid(row=1, column=0, sticky="ew")
+        helv14 = tkFont.Font(family='Helvetica', size=14)   
+        self.save_button['font'] = helv14         
+
         self.button_frame = Frame(self.frame, bg="orange")
-        self.button_frame.grid(row=1, column=0)
+        self.button_frame.grid(row=2, column=0)
 
         self.left_icon = PIL.ImageTk.PhotoImage(PIL.Image.open('icons/leftarrow.png').resize((30,30)))
         self.right_icon = PIL.ImageTk.PhotoImage(PIL.Image.open('icons/rightarrow.png').resize((30,30)))
@@ -85,7 +102,7 @@ class Tree:
 
 
         self.depth_label = Label(self.frame, text = "Depth={}".format(self.central_node.depth), bg='orange',font=('Helvetica', 20))
-        self.depth_label.grid(row = 2, column = 0, sticky="s")
+        self.depth_label.grid(row = 3, column = 0, sticky="s")
 
 
         self.frame.grid_propagate(False)
@@ -474,6 +491,15 @@ class Node:
     '''
     def add_child(self, child):
         self.children.append(child)
+
+    def serialization_dict(self):
+        keys_to_save = {
+            "children" : [child.serialization_dict() for child in self.children],
+            "parent" : self.parent.serialization_dict() if self.parent is not None else None
+        }
+        if self.notes is not None:
+            keys_to_save["notes"] = [note.serialization_dict() for note in self.notes]
+        return keys_to_save
         
     '''
     Only requires an x, a y, and some input text.
@@ -515,6 +541,13 @@ class Node:
         submit_button.pack()
 
 class Note:
+
+    def serialization_dict(self):
+        keys_to_save = {
+            "note_type_input" : self.note_type_input,
+            "contents" : self.contents
+        }
+        return keys_to_save
 
     def save_text(self):
         self.contents = self.textbox_popup.get("1.0",'end-1c')
