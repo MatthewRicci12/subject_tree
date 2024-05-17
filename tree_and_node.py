@@ -33,6 +33,13 @@ half_height = 400
 
 class Tree:
 
+    def move(self, amount):
+        if len(self.central_node.children) < 35:
+            return
+        self.central_node.sliding_window_start += amount
+        self.redraw(self.canvas_ref)
+
+
     def mouse_click(self, event, tkinter_id):
         '''  delay mouse action to allow for double click to occur
         '''
@@ -52,8 +59,8 @@ class Tree:
             self.change_root(id)
     
 
-    def return_to_main_menu():
-        pass
+    def return_to_main_menu(self):
+        self.window_ref.destroy()
 
     def serialization_dict(self):
         keys_to_pickle = {"root" : self.root.serialization_dict()}
@@ -73,7 +80,7 @@ class Tree:
         self.frame.rowconfigure(1, weight=1)
 
         self.back_button = Button(self.frame, relief='flat', bg='orange', text='Back', \
-                                  command=self.save_tree)
+                                  command=self.return_to_main_menu)
         self.back_button.grid(row=0, column=0, sticky="ew")
         helv36 = tkFont.Font(family='Helvetica', size=24)
         self.back_button['font'] = helv36
@@ -494,6 +501,7 @@ class Node:
 
     def serialization_dict(self):
         keys_to_save = {
+            "input_text" : self.input_text,
             "children" : [child.serialization_dict() for child in self.children],
             "parent" : self.parent.serialization_dict() if self.parent is not None else None
         }
