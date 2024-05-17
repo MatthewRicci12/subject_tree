@@ -160,3 +160,7 @@ cython_debug/
 #.idea/
 
 test.py
+testfiles
+saved_trees
+notes.py
+popup_menu.py

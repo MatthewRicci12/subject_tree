@@ -514,14 +514,24 @@ class Node:
         submit_button = Button(self.add_note_dialog, text="Submit", command=lambda note_type_input=note_type_input:self.create_note(note_type_input.get()))
         submit_button.pack()
 
-
 class Note:
+
+    def save_text(self):
+        self.contents = self.textbox_popup.get("1.0",'end-1c')
+        self.note_preview.delete("1.0", END)
+        self.note_preview.insert("1.0", self.contents)
+        self.win.destroy()
+
+
     def popup_textbox(self, event):
-        win = Toplevel(takefocus=True)
-        win.attributes("-topmost", True)
-        win.grab_set()
-        self.contents = Text(win)
-        self.contents.pack(side = RIGHT, fill = BOTH, expand = True)
+        self.win = Toplevel(takefocus=True)
+        self.win.attributes("-topmost", True)
+        self.win.grab_set()
+        self.textbox_popup = Text(self.win) 
+        self.textbox_popup.delete("1.0", END)
+        self.textbox_popup.insert( "1.0", self.contents)
+        self.textbox_popup.pack(side = RIGHT, fill = BOTH, expand = True)
+        self.win.protocol("WM_DELETE_WINDOW", self.save_text)
 
 
     def get_random_color(self):
@@ -530,10 +540,12 @@ class Note:
     def __init__(self, frame, note_type_input):
         #self.note_title_input = note_title_input
         self.note_type_input = note_type_input
+        self.frame_ref = frame
 
-        self.label = Label(frame, text=note_type_input, font=("Times New Roman", 14, "bold"), fg=self.get_random_color(), borderwidth=2, relief="groove")
+        self.label = Label(self.frame_ref, text=note_type_input, font=("Times New Roman", 14, "bold"), fg=self.get_random_color(), borderwidth=2, relief="groove")
         self.label.pack(padx=5, anchor="w")
-        self.textbox = Text(frame, borderwidth=1, relief="solid", height=8) #T = Text(root, bg, fg, bd, height, width, font, ..) 
-        self.textbox.configure(state="disabled")
-        self.textbox.pack(fill=X, padx=(5, 5), pady=(0, 3)) #Order: (left, right) (up, down)
-        self.textbox.bind("<Button-1>", self.popup_textbox)
+        self.note_preview = Text(self.frame_ref, borderwidth=1, relief="solid", height=8) #T = Text(root, bg, fg, bd, height, width, font, ..) 
+        self.note_preview.configure(state="disabled")
+        self.note_preview.pack(fill=X, padx=(5, 5), pady=(0, 3)) #Order: (left, right) (up, down)
+        self.note_preview.bind("<Button-1>", self.popup_textbox)
+        self.contents = ""
