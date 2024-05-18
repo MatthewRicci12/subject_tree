@@ -40,23 +40,19 @@ class Tree:
         self.redraw(self.canvas)
 
 
-    def mouse_click(self, event, tkinter_id):
-        '''  delay mouse action to allow for double click to occur
-        '''
-        self.clicked = tkinter_id
+    def mouse_click(self, event):
         self.canvas.after(300, self.mouse_action, event)
 
 
-    def double_click(self, event):
+    def double_click(self):
         self.double_click_flag = True
         
     def mouse_action(self, event):
-        id = self.clicked
         if self.double_click_flag:
             self.double_click_flag = False
-            self.invoke_notes(id)
+            self.invoke_notes(self.clicked)
         else:
-            self.change_root(id)
+            self.change_root(self.clicked)
     
 
     def return_to_main_menu(self):
@@ -112,39 +108,36 @@ class Tree:
 
         self.frame.grid_propagate(False)
 
-    def submit_child(self, node_ref, child_name):
+    def submit_child(self):
         self.add_child_dialog.destroy()
-        self.add_node(node_ref, child_name)
+        self.add_node(self.node_ref, self.child_name.get())
 
-    def submit_child_batch(self, node_ref):
+    def submit_child_batch(self):
         children_names = self.inputtxt.get("1.0",END)
         self.add_child_dialog.destroy()
         for child_name in children_names.split("\n"):
             if len(child_name) > 0:
-                self.add_node(node_ref, child_name)
+                self.add_node(self.node_ref, child_name)
 
 
 
         
     def menu_add_child_node(self):
-        tkinter_id = self.clicked
-        node_ref = self.tkinter_nodes_to_ids[tkinter_id]
+        self.node_ref = self.tkinter_nodes_to_ids[self.clicked]
         self.add_child_dialog = Toplevel(takefocus=True)
         self.add_child_dialog.attributes("-topmost", True)
         self.add_child_dialog.grab_set()
 
-        child_name = StringVar()
-        self.inputtxt = Entry(self.add_child_dialog, textvariable=child_name) 
+        self.child_name = StringVar()
+        self.inputtxt = Entry(self.add_child_dialog, textvariable=self.child_name) 
         self.inputtxt.pack()    
         self.printButton = Button(self.add_child_dialog, text = "Submit", \
-                            command = lambda child_name=child_name, node_ref=node_ref: \
-                                self.submit_child(node_ref, child_name.get())) 
+                            command = self.submit_child) 
         self.printButton.pack()
       
 
     def menu_batch_add_child_node(self):
-        tkinter_id = self.clicked
-        node_ref = self.tkinter_nodes_to_ids[tkinter_id]
+        self.node_ref = self.tkinter_nodes_to_ids[self.clicked]
         self.add_child_dialog = Toplevel(takefocus=True)
         self.add_child_dialog.attributes("-topmost", True)
         self.add_child_dialog.grab_set()
@@ -152,8 +145,7 @@ class Tree:
         self.inputtxt = Text(self.add_child_dialog) 
         self.inputtxt.pack()    
         self.printButton = Button(self.add_child_dialog, text = "Submit", \
-                            command = lambda node_ref=node_ref: \
-                                self.submit_child_batch(node_ref)) 
+                            command = self.submit_child_batch) 
         self.printButton.pack()
 
     def menu_batch_delete_node(self):
@@ -175,8 +167,7 @@ class Tree:
             self.redraw()
             
     def menu_go_to_parent(self):
-        tkinter_id = self.clicked
-        node_ref = self.tkinter_nodes_to_ids[tkinter_id]
+        node_ref = self.tkinter_nodes_to_ids[self.clicked]
         parent = node_ref.parent
         self.central_node = parent
         self.redraw()
@@ -203,6 +194,8 @@ class Tree:
         self.popup_menu.add_command(label = "Mark as done", command = self.popup)
         self.popup_menu.add_command(label = "Go to parent", command = self.menu_go_to_parent)
 
+        self.double_click_flag = False
+
     def invoke_notes(self, tkinter_id):
         node_ref = self.tkinter_nodes_to_ids[tkinter_id]
         node_ref.open_notes_menu()
@@ -217,9 +210,9 @@ class Tree:
         tkinter_id = node.draw_circle(self.canvas, input_text)
         #Map it
         self.tkinter_nodes_to_ids[tkinter_id] = node
-        self.canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
-        self.canvas.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.mouse_click(_, tkinter_id))             
-        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', lambda _: self.double_click(_))                   
+        self.canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
+        self.canvas.tag_bind(tkinter_id, '<Button-1>', self.mouse_click)             
+        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', self.double_click)                   
         #Grid it
         self.grid[self._determine_row(node.y)][self._determine_col(node.x)] = 1
 
@@ -460,9 +453,9 @@ class Node:
         keys_to_save = {
             "input_text" : self.input_text,
             "children" : [child.serialization_dict() for child in self.children],
-            "parent" : self.parent.serialization_dict() if self.parent is not None else None
+            "parent" : self.parent.serialization_dict() if self.parent is not None else None,
+            "notes_frame": self.notes_frame.serialization_dict if self.notes_frame is not None else None
         }
-        #TODO
         return keys_to_save
         
     '''
@@ -492,7 +485,6 @@ class NotesFrame:
         self.notes_menu.deiconify()
         self.notes_menu.grab_set()
 
-
     def add_note(self):
         self.add_note_dialog = Toplevel(takefocus=True)
         self.add_note_dialog.attributes("-topmost", True)
@@ -513,9 +505,8 @@ class NotesFrame:
 
     def __init__(self):
 
-        self.notes_menu = Toplevel() #takefocus=True
+        self.notes_menu = Toplevel()
         self.notes_menu.attributes("-topmost", True)
-        #self.notes_menu.grab_set()
         self.notes_menu.geometry("1200x800")
     
         self.top_frame = Frame(self.notes_menu, width=1200, height=30, bg="orange")
@@ -535,6 +526,11 @@ class NotesFrame:
         self.notes_menu.withdraw()
         self.notes_menu.protocol("WM_DELETE_WINDOW", lambda: self.notes_menu.withdraw())
 
+    def serialization_dict(self):
+        keys_to_save = {
+            "notes" : [note.serialization_dict() for note in self.notes]
+        }
+        return keys_to_save
 
 class Note:
 
@@ -552,7 +548,7 @@ class Note:
         self.win.destroy()
 
 
-    def popup_textbox(self, event):
+    def popup_textbox(self):
         self.win = Toplevel(takefocus=True)
         self.win.attributes("-topmost", True)
         self.win.grab_set()
@@ -568,7 +564,6 @@ class Note:
 
 
     def __init__(self, frame_ref, note_type_input):
-        #self.note_title_input = note_title_input
         self.note_type_input = note_type_input
         self.frame_ref = frame_ref
         self.contents = ""
