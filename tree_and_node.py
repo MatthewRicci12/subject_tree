@@ -339,22 +339,7 @@ class Tree:
 class Node:
 
     def open_notes_menu(self):
-        self.notes_menu = Toplevel(takefocus=True)
-        self.notes_menu.attributes("-topmost", True)
-        self.notes_menu.grab_set()
-        self.notes_menu.geometry("1200x800")
-
-        self.frame = Frame(self.notes_menu, width=1200, height=30, bg="orange")
-        self.frame.pack(fill=X)
-
-        self.add_node_button = Button(self.frame, text = "Add Note", bg='orange',font=('Helvetica', 12), \
-                                      relief='flat', command = self.add_note)
-        self.add_node_button.pack(side=TOP)
-
-        self.frame2 = Frame(self.notes_menu)
-        self.frame2.pack(fill = BOTH, expand = True)  
-
-        self.frame.pack_propagate(False)
+        self.notes_frame.show_self()
 
     '''
     Calculate if this node is even drawable
@@ -384,7 +369,7 @@ class Node:
                 and self.x+RADIUS+OFFSET <= 1000 \
                 and self.y-RADIUS >= 0
     '''
-    Draw point in the center of the node as a visual aid if needed.
+    Draw point in the center of the node as a visual aid if desired.
     '''
     def _draw_point(self, x, y, canvas):
         canvas.create_oval(x-1, y-1, x+1, y+1)
@@ -457,6 +442,7 @@ class Node:
 
         id = canvas.create_oval(x0, y0, x1+OFFSET, y1, fill="white")
         self.tkinter_id = id
+
         input_text = self._process_text(input_text)
         canvas.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
         #self._draw_point(x1-15, y1-RADIUS, canvas)
@@ -476,8 +462,7 @@ class Node:
             "children" : [child.serialization_dict() for child in self.children],
             "parent" : self.parent.serialization_dict() if self.parent is not None else None
         }
-        if self.notes is not None:
-            keys_to_save["notes"] = [note.serialization_dict() for note in self.notes]
+        #TODO
         return keys_to_save
         
     '''
@@ -498,11 +483,14 @@ class Node:
         self.depth = depth
         self.tkinter_id = None
         self.sliding_window_start = 0
-        self.notes = None
+        self.notes_frame = NotesFrame()
 
-    def create_note(self, note_type_input):
-        self.add_note_dialog.destroy()
-        self.notes = Note(self.frame2, note_type_input)
+
+class NotesFrame:
+
+    def show_self(self):
+        self.notes_menu.deiconify()
+        self.notes_menu.grab_set()
 
 
     def add_note(self):
@@ -510,14 +498,43 @@ class Node:
         self.add_note_dialog.attributes("-topmost", True)
         self.add_note_dialog.grab_set()
 
-        note_type_label = Label(self.add_note_dialog, text="Enter the type of note")
-        note_title = StringVar()
-        note_type = StringVar()
-        note_type_input = Entry(self.add_note_dialog, textvariable=note_type)
-        note_type_label.pack()
+        self.note_type_label = Label(self.add_note_dialog, text="Enter the type of note")
+        self.note_type = StringVar()
+        note_type_input = Entry(self.add_note_dialog, textvariable=self.note_type)
+        self.note_type_label.pack()
         note_type_input.pack()
-        submit_button = Button(self.add_note_dialog, text="Submit", command=lambda note_type_input=note_type_input:self.create_note(note_type_input.get()))
+        submit_button = Button(self.add_note_dialog, text="Submit", command=self.create_note_postdialog)
         submit_button.pack()
+
+    def create_note_postdialog(self):
+        self.add_note_dialog.destroy()
+        new_note = Note(self.main_frame, self.note_type.get())
+        self.notes.append(new_note)
+
+    def __init__(self):
+
+        self.notes_menu = Toplevel() #takefocus=True
+        self.notes_menu.attributes("-topmost", True)
+        #self.notes_menu.grab_set()
+        self.notes_menu.geometry("1200x800")
+    
+        self.top_frame = Frame(self.notes_menu, width=1200, height=30, bg="orange")
+        self.top_frame.pack(fill=X)
+
+        self.add_node_button = Button(self.top_frame, text = "Add Note", bg='orange',font=('Helvetica', 12), \
+                                      relief='flat', command = self.add_note)
+        self.add_node_button.pack(side=TOP)
+
+        self.main_frame = Frame(self.notes_menu)
+        self.main_frame.pack(fill = BOTH, expand = True)  
+
+        self.top_frame.pack_propagate(False)
+
+        self.notes = []
+
+        self.notes_menu.withdraw()
+        self.notes_menu.protocol("WM_DELETE_WINDOW", lambda: self.notes_menu.withdraw())
+
 
 class Note:
 
@@ -549,15 +566,17 @@ class Note:
     def get_random_color(self):
         return "#{:02x}{:02x}{:02x}".format(random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
 
-    def __init__(self, frame, note_type_input):
+
+    def __init__(self, frame_ref, note_type_input):
         #self.note_title_input = note_title_input
         self.note_type_input = note_type_input
-        self.frame_ref = frame
-
-        self.label = Label(self.frame_ref, text=note_type_input, font=("Times New Roman", 14, "bold"), fg=self.get_random_color(), borderwidth=2, relief="groove")
+        self.frame_ref = frame_ref
+        self.contents = ""
+        self.label = Label(self.frame_ref, text=self.note_type_input, font=("Times New Roman", 14, "bold"), fg=self.get_random_color(), borderwidth=2, relief="groove")
         self.label.pack(padx=5, anchor="w")
         self.note_preview = Text(self.frame_ref, borderwidth=1, relief="solid", height=8) #T = Text(root, bg, fg, bd, height, width, font, ..) 
         self.note_preview.configure(state="disabled")
         self.note_preview.pack(fill=X, padx=(5, 5), pady=(0, 3)) #Order: (left, right) (up, down)
         self.note_preview.bind("<Button-1>", self.popup_textbox)
-        self.contents = ""
+
+
