@@ -37,14 +37,14 @@ class Tree:
         if len(self.central_node.children) < 35:
             return
         self.central_node.sliding_window_start += amount
-        self.redraw(self.canvas_ref)
+        self.redraw(self.canvas)
 
 
     def mouse_click(self, event, tkinter_id):
         '''  delay mouse action to allow for double click to occur
         '''
         self.clicked = tkinter_id
-        self.canvas_ref.after(300, self.mouse_action, event)
+        self.canvas.after(300, self.mouse_action, event)
 
 
     def double_click(self, event):
@@ -60,7 +60,7 @@ class Tree:
     
 
     def return_to_main_menu(self):
-        self.window_ref.destroy()
+        self.tree_window.destroy()
 
     def serialization_dict(self):
         keys_to_pickle = {"root" : self.root.serialization_dict()}
@@ -72,7 +72,7 @@ class Tree:
 
 
     def init_side_frame(self):
-        self.frame = Frame(self.window_ref,bg='orange',width=200,height=800)
+        self.frame = Frame(self.tree_window,bg='orange',width=200,height=800)
         self.frame.pack(side=LEFT)
         self.frame.columnconfigure(0, weight = 1)
         self.frame.rowconfigure(3, weight=1)
@@ -94,12 +94,10 @@ class Tree:
         self.button_frame = Frame(self.frame, bg="orange")
         self.button_frame.grid(row=2, column=0)
 
-        self.left_icon = PIL.ImageTk.PhotoImage(PIL.Image.open('icons/leftarrow.png').resize((30,30)))
-        self.right_icon = PIL.ImageTk.PhotoImage(PIL.Image.open('icons/rightarrow.png').resize((30,30)))
-        self.left_button = Button(self.button_frame, relief='flat', bg='orange', command=lambda \
-                                                        canvas=self.canvas_ref: self.move(-5))
-        self.right_button = Button(self.button_frame, relief='flat', bg='orange', command=lambda \
-                                                        canvas=self.canvas_ref: self.move(5))
+        self.left_icon = PIL.ImageTk.PhotoImage(master = self.frame, image = PIL.Image.open('icons/leftarrow.png').resize((30,30)))
+        self.right_icon = PIL.ImageTk.PhotoImage(master = self.frame, image = PIL.Image.open('icons/rightarrow.png').resize((30,30)))
+        self.left_button = Button(self.button_frame, relief='flat', bg='orange', command=lambda: self.move(-5))
+        self.right_button = Button(self.button_frame, relief='flat', bg='orange', command=lambda: self.move(5))
         self.left_button.config(image=self.left_icon)
         self.left_button.image = self.left_icon
         self.right_button.config(image=self.right_icon)
@@ -196,7 +194,7 @@ class Tree:
 
 
     def init_popup_menu(self):
-        self.popup_menu = Menu(self.window_ref, tearoff = 0)
+        self.popup_menu = Menu(self.tree_window, tearoff = 0)
 
         self.popup_menu.add_command(label = "Add child node", command = self.menu_add_child_node)
         self.popup_menu.add_command(label = "Batch add child node", command = self.menu_batch_add_child_node)
@@ -209,40 +207,46 @@ class Tree:
         node_ref = self.tkinter_nodes_to_ids[tkinter_id]
         node_ref.open_notes_menu()
         
+    def _reset_bookeeping_info(self):
+        self.grid = [[0 for _ in range(5)] for __ in range(7)]
+        self.tkinter_nodes_to_ids = {}
+        self.node_queue = []
 
-    def __init__(self, canvas_ref, input_text, window_ref): #Maybe more like canvas_ref? And make it a member?
-        self.canvas_ref = canvas_ref
-        self.window_ref = window_ref       
+    def _register_node(self, node, input_text):
+        #Draw it
+        tkinter_id = node.draw_circle(self.canvas, input_text)
+        #Map it
+        self.tkinter_nodes_to_ids[tkinter_id] = node
+        self.canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
+        self.canvas.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.mouse_click(_, tkinter_id))             
+        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', lambda _: self.double_click(_))                   
+        #Grid it
+        self.grid[self._determine_row(node.y)][self._determine_col(node.x)] = 1
+
+        #Queue it
+        self.node_queue.append((node.x, node.y+VERTICAL_GAP, UP_DIR))
+        self.node_queue.append((node.x-HORIZONTAL_GAP, node.y, RIGHT_DIR))
+        self.node_queue.append((node.x+HORIZONTAL_GAP, node.y, LEFT_DIR))
+        self.node_queue.append((node.x, node.y-VERTICAL_GAP, DOWN_DIR))
+
+    def __init__(self, input_text): #Maybe more like canvas? And make it a member?
+        self.tree_window = Tk()
+        self.tree_window.geometry("1000x600")
+        self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800)
+        self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)  
+
         root = Node(input_text, 0, None, half_width, half_height)
         self.root = root
         self.central_node = root
         self.init_side_frame()
         self.init_popup_menu()
 
-
-
-        self.grid = [[0 for _ in range(5)] for __ in range(7)]
-        self.tkinter_nodes_to_ids = {}
-        self.node_queue = []
-        self.central_node = root
-
-        #Draw it
-        tkinter_id = root.draw_circle(self.canvas_ref, input_text)
-        #Map it
-        self.tkinter_nodes_to_ids[tkinter_id] = root
-        self.canvas_ref.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
-        self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.mouse_click(_, tkinter_id))             
-        self.canvas_ref.tag_bind(tkinter_id, '<Double-Button-1>', lambda _: self.double_click(_))                   
-        #Grid it
-        self.grid[self._determine_row(root.y)][self._determine_col(root.x)] = 1
-
-        #Queue it
-        self.node_queue.append((root.x, root.y+VERTICAL_GAP, UP_DIR))
-        self.node_queue.append((root.x-HORIZONTAL_GAP, root.y, RIGHT_DIR))
-        self.node_queue.append((root.x+HORIZONTAL_GAP, root.y, LEFT_DIR))
-        self.node_queue.append((root.x, root.y-VERTICAL_GAP, DOWN_DIR))
+        self._reset_bookeeping_info()
+        self._register_node(root, input_text)
 
         self.double_click_flag = False
+
+        self.tree_window.mainloop()
 
 
 
@@ -297,23 +301,7 @@ class Tree:
                 if not new_node._in_bounds(source_dir) or not self._no_collide(grid_x, grid_y):
                     continue #This one is bad, but we keep trying.
 
-                #Draw it
-                tkinter_id = new_node.draw_circle(self.canvas_ref, new_node.input_text) #I dont like calling draw_circle like this
-                self.canvas_ref.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
-                self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.mouse_click(_, tkinter_id))             
-                self.canvas_ref.tag_bind(tkinter_id, '<Double-Button-1>', lambda _: self.double_click(_))  
-                #Map it
-                self.tkinter_nodes_to_ids[tkinter_id] = new_node
-
-                #Grid it. 
-                self.grid[grid_y][grid_x] = 1
-
-                
-                #Queue it
-                self.node_queue.append((new_node.x, new_node.y+VERTICAL_GAP, UP_DIR))
-                self.node_queue.append((new_node.x-HORIZONTAL_GAP, new_node.y, RIGHT_DIR))
-                self.node_queue.append((new_node.x+HORIZONTAL_GAP, new_node.y, LEFT_DIR))
-                self.node_queue.append((new_node.x, new_node.y-VERTICAL_GAP, DOWN_DIR))
+                self._register_node(new_node, new_node.input_text)
                 break #Break if we found a coordinate. No need to keep pumping.
 
     '''
@@ -332,38 +320,21 @@ class Tree:
 
 
     def redraw(self):
-        self.canvas_ref.delete('all')
+        self.canvas.delete('all')
 
         #Constructor, except we already know root.
-        self.grid = [[0 for _ in range(5)] for __ in range(7)]
-        self.tkinter_nodes_to_ids = {}
-        self.node_queue = []
-        root = self.central_node
+        self._reset_bookeeping_info()
 
-        #Draw it
-        tkinter_id = root.draw_circle(self.canvas_ref, root.input_text)
-        self.canvas_ref.tag_bind(tkinter_id, '<Button-3>', lambda event, tkinter_id=tkinter_id: self.show_popup_menu(event, tkinter_id))
-        self.canvas_ref.tag_bind(tkinter_id, '<Button-1>', lambda _, tkinter_id=tkinter_id: self.mouse_click(_, tkinter_id))             
-        self.canvas_ref.tag_bind(tkinter_id, '<Double-Button-1>', lambda _: self.double_click(_))                   
-        self.depth_label.config(text = "Depth={}".format(self.central_node.depth))
-        #Map it
-        self.tkinter_nodes_to_ids[tkinter_id] = root
-        #Grid it
-        self.grid[self._determine_row(root.y)][self._determine_col(root.x)] = 1
+        central_node = self.central_node
 
-        #Queue it
-        self.node_queue.append((root.x, root.y+VERTICAL_GAP, UP_DIR))
-        self.node_queue.append((root.x-HORIZONTAL_GAP, root.y, RIGHT_DIR))
-        self.node_queue.append((root.x+HORIZONTAL_GAP, root.y, LEFT_DIR))
-        self.node_queue.append((root.x, root.y-VERTICAL_GAP, DOWN_DIR))
-
+        self._register_node(central_node, central_node.input_text)
 
         children = self.central_node.children
         num_children = len(children)
         sws = self.central_node.sliding_window_start
         for i in range(sws, min(sws+num_children, sws+35)):
             self.add_existing_node(self.central_node, children[i % num_children], False)
-        self.canvas_ref.update()
+        self.canvas.update()
 
 class Node:
 
@@ -415,8 +386,8 @@ class Node:
     '''
     Draw point in the center of the node as a visual aid if needed.
     '''
-    def _draw_point(self, x, y, canvas_ref):
-        canvas_ref.create_oval(x-1, y-1, x+1, y+1)
+    def _draw_point(self, x, y, canvas):
+        canvas.create_oval(x-1, y-1, x+1, y+1)
 
     '''
     Determine line breaks in the text via well-known "brackets"
@@ -477,19 +448,19 @@ class Node:
     '''
     Actually draw the node based on x and y. Includs the text to go along with it.
     '''  
-    def draw_circle(self, canvas_ref, input_text):
+    def draw_circle(self, canvas, input_text):
 
         x0 = self.x-RADIUS
         y0 = self.y-RADIUS
         x1 = self.x+RADIUS
         y1 = self.y+RADIUS
 
-        id = canvas_ref.create_oval(x0, y0, x1+OFFSET, y1, fill="white")
+        id = canvas.create_oval(x0, y0, x1+OFFSET, y1, fill="white")
         self.tkinter_id = id
         input_text = self._process_text(input_text)
-        canvas_ref.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
-        self._draw_point(x1-15, y1-RADIUS, canvas_ref)
-        canvas_ref.create_rectangle(x0+HEURISTIC_1, y0+HEURISTIC_2, x1+OFFSET-HEURISTIC_1, y1-HEURISTIC_2)
+        canvas.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
+        #self._draw_point(x1-15, y1-RADIUS, canvas)
+        #canvas.create_rectangle(x0+HEURISTIC_1, y0+HEURISTIC_2, x1+OFFSET-HEURISTIC_1, y1-HEURISTIC_2)
         return id
 
     '''
