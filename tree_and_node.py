@@ -148,9 +148,8 @@ class Tree:
                             command = self.submit_child_batch) 
         self.printButton.pack()
 
-    def menu_batch_delete_node(self):
-        tkinter_id = self.clicked
-        node_ref = self.tkinter_nodes_to_ids[tkinter_id]
+    def menu_delete_node(self):
+        node_ref = self.tkinter_nodes_to_ids[self.clicked]
 
         if node_ref is self.central_node:
             if node_ref is self.root:
@@ -189,7 +188,7 @@ class Tree:
 
         self.popup_menu.add_command(label = "Add child node", command = self.menu_add_child_node)
         self.popup_menu.add_command(label = "Batch add child node", command = self.menu_batch_add_child_node)
-        self.popup_menu.add_command(label = "Delete node", command = self.menu_batch_delete_node)
+        self.popup_menu.add_command(label = "Delete node", command = self.menu_delete_node)
         self.popup_menu.add_command(label = "Change style", command = self.popup)
         self.popup_menu.add_command(label = "Mark as done", command = self.popup)
         self.popup_menu.add_command(label = "Go to parent", command = self.menu_go_to_parent)
@@ -207,7 +206,7 @@ class Tree:
 
     def _register_node(self, node, input_text):
         #Draw it
-        tkinter_id = node.draw_circle(self.canvas, input_text)
+        tkinter_id = node.draw_circle(input_text)
         #Map it
         self.tkinter_nodes_to_ids[tkinter_id] = node
         self.canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
@@ -228,7 +227,7 @@ class Tree:
         self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800)
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)  
 
-        root = Node(input_text, 0, None, half_width, half_height)
+        root = Node(input_text, 0, None, self.canvas, half_width, half_height)
         self.root = root
         self.central_node = root
         self.init_side_frame()
@@ -308,7 +307,7 @@ class Tree:
         draw it, map it, grid it, queue it.
     '''
     def add_node(self, parent_node, input_text):
-        new_node = Node(input_text, parent_node.depth+1, parent_node)
+        new_node = Node(input_text, parent_node.depth+1, parent_node, self.canvas)
         self.add_existing_node(parent_node, new_node)
 
 
@@ -364,8 +363,8 @@ class Node:
     '''
     Draw point in the center of the node as a visual aid if desired.
     '''
-    def _draw_point(self, x, y, canvas):
-        canvas.create_oval(x-1, y-1, x+1, y+1)
+    def _draw_point(self, x, y):
+        self.canvas_ref.create_oval(x-1, y-1, x+1, y+1)
 
     '''
     Determine line breaks in the text via well-known "brackets"
@@ -426,20 +425,20 @@ class Node:
     '''
     Actually draw the node based on x and y. Includs the text to go along with it.
     '''  
-    def draw_circle(self, canvas, input_text):
+    def draw_circle(self, input_text):
 
         x0 = self.x-RADIUS
         y0 = self.y-RADIUS
         x1 = self.x+RADIUS
         y1 = self.y+RADIUS
 
-        id = canvas.create_oval(x0, y0, x1+OFFSET, y1, fill="white")
+        id = self.canvas_ref.create_oval(x0, y0, x1+OFFSET, y1, fill="white")
         self.tkinter_id = id
 
         input_text = self._process_text(input_text)
-        canvas.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
-        #self._draw_point(x1-15, y1-RADIUS, canvas)
-        #canvas.create_rectangle(x0+HEURISTIC_1, y0+HEURISTIC_2, x1+OFFSET-HEURISTIC_1, y1-HEURISTIC_2)
+        self.canvas_ref.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
+        #self._draw_point(x1-15, y1-RADIUS, self.canvas_ref)
+        #self.canvas_ref.create_rectangle(x0+HEURISTIC_1, y0+HEURISTIC_2, x1+OFFSET-HEURISTIC_1, y1-HEURISTIC_2)
         return id
 
     '''
@@ -467,7 +466,7 @@ class Node:
     tkinter_id = If it DOES get drawn, we want whatever ID tkinter assigned
         to it so we can bind callbacks.
     '''
-    def __init__(self, input_text, depth, parent, x=-1, y=-1):
+    def __init__(self, input_text, depth, parent, canvas_ref, x=-1, y=-1):
         self.x = x
         self.y = y
         self.parent = parent
@@ -477,6 +476,7 @@ class Node:
         self.tkinter_id = None
         self.sliding_window_start = 0
         self.notes_frame = NotesFrame()
+        self.canvas_ref = canvas_ref
 
 
 class NotesFrame:
