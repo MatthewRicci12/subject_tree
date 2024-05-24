@@ -27,8 +27,8 @@ class App:
 
         root = tree["root"]
 
-        Tree(root["input_text"]) 
-        main()
+        x = 3
+
 
     def create_cur_tree(self):
         self.tree_creation_dialog.destroy() #1

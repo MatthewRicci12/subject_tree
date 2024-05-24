@@ -40,7 +40,8 @@ class Tree:
         self.redraw(self.canvas)
 
 
-    def mouse_click(self, event):
+    def mouse_click(self, event, id):
+        self.clicked = id
         self.canvas.after(300, self.mouse_action, event)
 
 
@@ -153,13 +154,18 @@ class Tree:
 
         if node_ref is self.central_node:
             if node_ref is self.root:
-                if not node_ref.children: 
-                    return #We deleted root, and there is no successor
-                else:
-                    return #We deleted root with at least one successor
-            else:
-                return #Central node, but not root
-        else:
+                if not node_ref.children:         #Del root, no successor
+                    self.return_to_main_menu()
+                else:                             #Del root, sucessor
+                    self.root = node_ref #Lose pointer #1
+                    node_ref.parent = None #Lose pointer #2
+                    self.central_node = node_ref
+                    self.redraw()
+            else:            
+                parent = node_ref.parent         #Central, not root
+                parent.children.remove(node_ref) #Lose pointer here
+                self.redraw()
+        else:                                    #Not central
             #A simple child node that is currently visible
             parent = node_ref.parent   
             parent.children.remove(node_ref)
@@ -210,7 +216,7 @@ class Tree:
         #Map it
         self.tkinter_nodes_to_ids[tkinter_id] = node
         self.canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
-        self.canvas.tag_bind(tkinter_id, '<Button-1>', self.mouse_click)             
+        self.canvas.tag_bind(tkinter_id, '<Button-1>', lambda event, id = tkinter_id: self.mouse_click(event, id))             
         self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', self.double_click)                   
         #Grid it
         self.grid[self._determine_row(node.y)][self._determine_col(node.x)] = 1
@@ -452,8 +458,7 @@ class Node:
         keys_to_save = {
             "input_text" : self.input_text,
             "children" : [child.serialization_dict() for child in self.children],
-            "parent" : self.parent.serialization_dict() if self.parent is not None else None,
-            "notes_frame": self.notes_frame.serialization_dict if self.notes_frame is not None else None
+            "notes_frame": self.notes_frame.serialization_dict() if self.notes_frame is not None else None
         }
         return keys_to_save
         
