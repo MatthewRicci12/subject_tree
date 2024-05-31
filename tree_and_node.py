@@ -45,7 +45,7 @@ class Tree:
         self.canvas.after(300, self.mouse_action, event)
 
 
-    def double_click(self):
+    def double_click(self, event):
         self.double_click_flag = True
         
     def mouse_action(self, event):
@@ -64,8 +64,12 @@ class Tree:
         return keys_to_pickle
 
     def save_tree(self):
-        with open("saved_trees/{}.pickle".format(self.root.input_text), "wb") as outfile:
-            pickle.dump(self.serialization_dict(), outfile)
+        try:
+            with open("saved_trees/{}.pickle".format(self.root.input_text), "wb") as outfile:
+                pickle.dump(self.serialization_dict(), outfile)
+            messagebox.showinfo("Successful file save",  "File saved successfully!") 
+        except IOError:
+            print("Something went wrong while saving the file.")
 
 
     def init_side_frame(self):
@@ -120,9 +124,6 @@ class Tree:
             if len(child_name) > 0:
                 self.add_node(self.node_ref, child_name)
 
-
-
-        
     def menu_add_child_node(self):
         self.node_ref = self.tkinter_nodes_to_ids[self.clicked]
         self.add_child_dialog = Toplevel(takefocus=True)
@@ -157,13 +158,16 @@ class Tree:
                 if not node_ref.children:         #Del root, no successor
                     self.return_to_main_menu()
                 else:                             #Del root, sucessor
-                    self.root = node_ref #Lose pointer #1
-                    node_ref.parent = None #Lose pointer #2
-                    self.central_node = node_ref
+                    self.root = self.root.children[0] #Lose pointer #1
+                    self.root.x = half_width
+                    self.root.y = half_height
+                    self.root.parent = None #Lose pointer #2
+                    self.central_node = self.root
                     self.redraw()
             else:            
                 parent = node_ref.parent         #Central, not root
                 parent.children.remove(node_ref) #Lose pointer here
+                self.central_node = parent
                 self.redraw()
         else:                                    #Not central
             #A simple child node that is currently visible
@@ -176,7 +180,26 @@ class Tree:
         parent = node_ref.parent
         self.central_node = parent
         self.redraw()
-            
+
+    def menu_rename_node(self):
+        node_ref = self.tkinter_nodes_to_ids[self.clicked]    
+        self.rename_node_dialog = Toplevel(takefocus=True)
+        self.rename_node_dialog.attributes("-topmost", True)
+        self.rename_node_dialog.grab_set()
+
+        self.new_node_name = StringVar()
+        self.inputtxt = Entry( self.rename_node_dialog, textvariable=self.new_node_name) 
+        self.inputtxt.pack()    
+        self.printButton = Button(self.rename_node_dialog, text = "Submit", \
+                            command = self.postdialog_rename_node) 
+        self.printButton.pack()
+
+    def postdialog_rename_node(self):
+        node_ref = self.tkinter_nodes_to_ids[self.clicked]  
+        self.new_node_name = self.inputtxt.get()
+        self.rename_node_dialog.destroy()
+        self.canvas.delete(node_ref.tkinter_id)
+        node_ref.draw_circle(self.new_node_name)
         
     def popup(self): 
         messagebox.showinfo("",  "ID of clicked widget: {}".format(self.clicked)) 
@@ -194,9 +217,9 @@ class Tree:
 
         self.popup_menu.add_command(label = "Add child node", command = self.menu_add_child_node)
         self.popup_menu.add_command(label = "Batch add child node", command = self.menu_batch_add_child_node)
+        self.popup_menu.add_command(label = "Rename node", command = self.menu_rename_node)
         self.popup_menu.add_command(label = "Delete node", command = self.menu_delete_node)
         self.popup_menu.add_command(label = "Change style", command = self.popup)
-        self.popup_menu.add_command(label = "Mark as done", command = self.popup)
         self.popup_menu.add_command(label = "Go to parent", command = self.menu_go_to_parent)
 
         self.double_click_flag = False
@@ -217,7 +240,7 @@ class Tree:
         self.tkinter_nodes_to_ids[tkinter_id] = node
         self.canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
         self.canvas.tag_bind(tkinter_id, '<Button-1>', lambda event, id = tkinter_id: self.mouse_click(event, id))             
-        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', self.double_click)                   
+        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', lambda event: self.double_click(event))                   
         #Grid it
         self.grid[self._determine_row(node.y)][self._determine_col(node.x)] = 1
 
@@ -227,23 +250,39 @@ class Tree:
         self.node_queue.append((node.x+HORIZONTAL_GAP, node.y, LEFT_DIR))
         self.node_queue.append((node.x, node.y-VERTICAL_GAP, DOWN_DIR))
 
-    def __init__(self, input_text): #Maybe more like canvas? And make it a member?
+
+    @staticmethod
+    def construct_from_payload(payload):
+        tree = Tree()
+        tree.root = Node(payload["input_text"], 0, None, tree.canvas, \
+                    half_width, half_height)
+        tree.central_node = tree.root
+        
+        for child_node_payload in payload["children"]:
+            new_node = Node._construct_from_payload(child_node_payload, tree.root, tree.canvas)
+            tree.root.add_child(new_node)
+
+        return tree
+
+    def __init__(self, input_text=""): #Maybe more like canvas? And make it a member?
         self.tree_window = Tk()
         self.tree_window.geometry("1000x600")
         self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800)
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)  
 
         root = Node(input_text, 0, None, self.canvas, half_width, half_height)
+
         self.root = root
         self.central_node = root
         self.init_side_frame()
         self.init_popup_menu()
 
         self._reset_bookeeping_info()
-        self._register_node(root, input_text)
+        self._register_node(self.root, self.root.input_text)
 
         self.double_click_flag = False
 
+    def run(self):
         self.tree_window.mainloop()
 
 
@@ -324,6 +363,7 @@ class Tree:
         self._reset_bookeeping_info()
 
         central_node = self.central_node
+        self.depth_label.config(text = "Depth={}".format(self.central_node.depth))
 
         self._register_node(central_node, central_node.input_text)
 
@@ -458,10 +498,27 @@ class Node:
         keys_to_save = {
             "input_text" : self.input_text,
             "children" : [child.serialization_dict() for child in self.children],
+            "depth" : self.depth,
             "notes_frame": self.notes_frame.serialization_dict() if self.notes_frame is not None else None
         }
         return keys_to_save
         
+
+    @staticmethod
+    def _construct_from_payload(payload, parent, canvas_ref):
+        node = Node(payload["input_text"], payload["depth"], parent, canvas_ref)
+
+        for child_node_payload in payload["children"]:
+            new_node = Node._construct_from_payload(child_node_payload, node, canvas_ref)
+            node.children.append(new_node)
+
+        for note_payload in payload["notes_frame"]["notes"]:
+            note = Note._construct_from_payload(note_payload, payload["notes_frame"])
+            node.notes_frame.notes.append(note)
+
+        return node
+    
+
     '''
     Only requires an x, a y, and some input text.
     children = Its children. Starts empty ofc.
@@ -539,6 +596,13 @@ class NotesFrame:
 
 class Note:
 
+    @staticmethod
+    def _construct_from_payload(note_payload, frame_ref):
+        note = Note(frame_ref, note_payload["note_type_input"])
+        note.contents = note_payload["contents"]
+        return note
+
+#NOTE: Note type input, contents
     def serialization_dict(self):
         keys_to_save = {
             "note_type_input" : self.note_type_input,

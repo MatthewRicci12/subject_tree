@@ -25,16 +25,20 @@ class App:
         with open(file_path, "rb") as infile:
             tree = pickle.load(infile)
 
-        root = tree["root"]
+        payload = tree["root"]
 
-        x = 3
+        tree = Tree.construct_from_payload(payload)
+        tree.redraw()
+        tree.run()
+        
 
 
     def create_cur_tree(self):
         self.tree_creation_dialog.destroy() #1
         self.main_menu.destroy() #1
         self.main_menu = None#1
-        Tree(self.subject.get())
+        tree = Tree(self.subject.get())
+        tree.run()
         main()
 
         #DO stuff here
