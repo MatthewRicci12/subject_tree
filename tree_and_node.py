@@ -1,10 +1,12 @@
 from tkinter import *
 from tkinter import messagebox
 from tkinter import font as tkFont
+from tkinter import colorchooser
 import PIL.Image
 import PIL.ImageTk
 import random
 import pickle
+from collections import OrderedDict
 
 RADIUS = 50
 OFFSET = 70
@@ -543,27 +545,67 @@ class Node:
 
 class NotesFrame:
 
+    labels = OrderedDict()
+
     def show_self(self):
-        self.notes_menu.deiconify()
-        self.notes_menu.grab_set()
+        try:
+            self.notes_menu.deiconify()
+            self.notes_menu.grab_set()
+        finally:
+            self.notes_menu.grab_release()
+
+    def popup_color_chooser(self):
+         self.chosen_color = colorchooser.askcolor(parent=self.add_note_dialog)[1]
 
     def add_note(self):
         self.add_note_dialog = Toplevel(takefocus=True)
         self.add_note_dialog.attributes("-topmost", True)
         self.add_note_dialog.grab_set()
 
+        #Type of note
         self.note_type_label = Label(self.add_note_dialog, text="Enter the type of note")
         self.note_type = StringVar()
         note_type_input = Entry(self.add_note_dialog, textvariable=self.note_type)
         self.note_type_label.pack()
         note_type_input.pack()
+
+        #Color picker
+        self.color_pick_label = Label(self.add_note_dialog, text="Pick a color for this note type")
+        color_pick_button = Button(self.add_note_dialog, text="Pick color", command=self.popup_color_chooser)
+        self.chosen_color = "#800020" #Default color
+        self.color_pick_label.pack()
+        color_pick_button.pack()
+
+        #Pick previous label
+        self.color_pick_label = Label(self.add_note_dialog, text="Or pick a previously made note type")
+        self.prevous_label_listbox = Listbox(self.add_note_dialog)
+        i = 1
+        for label in self.labels.keys():
+            self.prevous_label_listbox.insert(i, label)
+            i += 1
+        self.color_pick_label.pack()
+        self.prevous_label_listbox.pack()
+
+        #Submit
         submit_button = Button(self.add_note_dialog, text="Submit", command=self.create_note_postdialog)
         submit_button.pack()
 
+
     def create_note_postdialog(self):
-        self.add_note_dialog.destroy()
-        new_note = Note(self.main_frame, self.note_type.get())
+        #Are we using an old label colour or not?
+        label = None
+        color = None
+        if len(self.note_type.get()) == 0: #Old label was chosen
+            chosen_label_index = self.prevous_label_listbox.curselection()[0]
+            label = self.prevous_label_listbox.get(chosen_label_index)
+            color = self.labels[label]
+        else:
+            self.labels[self.note_type.get()] = self.chosen_color
+            label = self.note_type.get()
+            color = self.chosen_color
+        new_note = Note(self.main_frame, label, color)
         self.notes.append(new_note)
+        self.add_note_dialog.destroy()
 
     def __init__(self):
 
@@ -602,7 +644,7 @@ class Note:
         note.contents = note_payload["contents"]
         return note
 
-#NOTE: Note type input, contents
+#NOTE: Note type input, contentss
     def serialization_dict(self):
         keys_to_save = {
             "note_type_input" : self.note_type_input,
@@ -612,12 +654,14 @@ class Note:
 
     def save_text(self):
         self.contents = self.textbox_popup.get("1.0",'end-1c')
+        self.note_preview.configure(state="normal") #new
         self.note_preview.delete("1.0", END)
         self.note_preview.insert("1.0", self.contents)
+        self.note_preview.configure(state="disabled")
         self.win.destroy()
 
 
-    def popup_textbox(self):
+    def popup_textbox(self, event):
         self.win = Toplevel(takefocus=True)
         self.win.attributes("-topmost", True)
         self.win.grab_set()
@@ -632,15 +676,15 @@ class Note:
         return "#{:02x}{:02x}{:02x}".format(random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
 
 
-    def __init__(self, frame_ref, note_type_input):
+    def __init__(self, frame_ref, note_type_input, color):
         self.note_type_input = note_type_input
         self.frame_ref = frame_ref
         self.contents = ""
-        self.label = Label(self.frame_ref, text=self.note_type_input, font=("Times New Roman", 14, "bold"), fg=self.get_random_color(), borderwidth=2, relief="groove")
+        self.label = Label(self.frame_ref, text=self.note_type_input, font=("Times New Roman", 14, "bold"), fg=color, borderwidth=2, relief="groove")
         self.label.pack(padx=5, anchor="w")
         self.note_preview = Text(self.frame_ref, borderwidth=1, relief="solid", height=8) #T = Text(root, bg, fg, bd, height, width, font, ..) 
         self.note_preview.configure(state="disabled")
         self.note_preview.pack(fill=X, padx=(5, 5), pady=(0, 3)) #Order: (left, right) (up, down)
-        self.note_preview.bind("<Button-1>", self.popup_textbox)
+        self.note_preview.bind("<Button-1>", lambda event: self.popup_textbox(event))
 
 

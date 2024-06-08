@@ -30,7 +30,7 @@ class App:
         tree = Tree.construct_from_payload(payload)
         tree.redraw()
         tree.run()
-        
+        main()
 
 
     def create_cur_tree(self):
