@@ -64,7 +64,8 @@ class Tree:
 
     #Tree
     def serialization_dict(self):
-        keys_to_pickle = {"root" : self.root.serialization_dict()}
+        keys_to_pickle = {"root" : self.root.serialization_dict(),
+                          "labels": NotesFrame.labels}
         return keys_to_pickle
 
     def save_tree(self):
@@ -257,19 +258,22 @@ class Tree:
     #Tree
     @staticmethod
     def _construct_from_payload(payload):
+        root_payload = payload["root"]
         tree = Tree()
-        tree.root = Node(payload["input_text"], 0, None, tree.canvas, \
+        tree.root = Node(root_payload["input_text"], 0, None, tree.canvas, \
                     half_width, half_height)
         tree.central_node = tree.root
         
-        for child_node_payload in payload["children"]:
+        for child_node_payload in root_payload["children"]:
             new_node = Node._construct_from_payload(child_node_payload, tree.root, tree.canvas)
             tree.root.add_child(new_node)
 
         tree.root.notes_frame = NotesFrame()
-        for note_payload in payload["notes_frame"]["notes"]:
+        for note_payload in root_payload["notes_frame"]["notes"]:
             note = Note._construct_from_payload(note_payload, tree.root.notes_frame.main_frame)
             tree.root.notes_frame.notes.append(note)
+
+        NotesFrame.labels = payload["labels"]
 
         return tree
 

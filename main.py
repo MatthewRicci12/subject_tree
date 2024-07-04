@@ -23,11 +23,9 @@ class App:
             print("Something went wrong.")
 
         with open(file_path, "rb") as infile:
-            tree = pickle.load(infile)
-
-        payload = tree["root"]
+            tree_payload = pickle.load(infile)
  
-        tree = Tree._construct_from_payload(payload)
+        tree = Tree._construct_from_payload(tree_payload)
         tree.redraw()
         tree.run()
         main()
