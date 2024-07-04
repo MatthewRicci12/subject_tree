@@ -12,15 +12,16 @@ class App:
 
     def load_existing_tree(self):
 
-        self.main_menu.destroy()
-        self.main_menu = None
 
         file_path = filedialog.askopenfilename(title="Select a File", filetypes=[("Pickle files", "*.pickle"), \
                         ("All files", "*.*")], initialdir = "saved_trees")
         if file_path:
             print(file_path)
+            self.main_menu.destroy()
+            self.main_menu = None
         else:
             print("Something went wrong.")
+            return
 
         with open(file_path, "rb") as infile:
             tree_payload = pickle.load(infile)
