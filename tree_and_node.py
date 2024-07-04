@@ -6,6 +6,7 @@ import PIL.Image
 import PIL.ImageTk
 import random
 import pickle
+from textwrap3 import wrap
 from collections import OrderedDict
 
 RADIUS = 50
@@ -61,6 +62,7 @@ class Tree:
     def return_to_main_menu(self):
         self.tree_window.destroy()
 
+    #Tree
     def serialization_dict(self):
         keys_to_pickle = {"root" : self.root.serialization_dict()}
         return keys_to_pickle
@@ -252,9 +254,9 @@ class Tree:
         self.node_queue.append((node.x+HORIZONTAL_GAP, node.y, LEFT_DIR))
         self.node_queue.append((node.x, node.y-VERTICAL_GAP, DOWN_DIR))
 
-
+    #Tree
     @staticmethod
-    def construct_from_payload(payload):
+    def _construct_from_payload(payload):
         tree = Tree()
         tree.root = Node(payload["input_text"], 0, None, tree.canvas, \
                     half_width, half_height)
@@ -264,8 +266,14 @@ class Tree:
             new_node = Node._construct_from_payload(child_node_payload, tree.root, tree.canvas)
             tree.root.add_child(new_node)
 
+        tree.root.notes_frame = NotesFrame()
+        for note_payload in payload["notes_frame"]["notes"]:
+            note = Note._construct_from_payload(note_payload, tree.root.notes_frame.main_frame)
+            tree.root.notes_frame.notes.append(note)
+
         return tree
 
+    #Tree
     def __init__(self, input_text=""): #Maybe more like canvas? And make it a member?
         self.tree_window = Tk()
         self.tree_window.geometry("1000x600")
@@ -415,60 +423,12 @@ class Node:
         self.canvas_ref.create_oval(x-1, y-1, x+1, y+1)
 
     '''
-    Determine line breaks in the text via well-known "brackets"
-    '''
-    def _determine_bracket(self, index):
-        if index <= 14:
-            return 1
-        if index > 14 and index <= 29:
-            return 2
-        if index > 29 and index <= 44:
-            return 3
-        
-    '''
     Insert newlines/ellipses elegantly.
     '''
     def _process_text(self, inputstr):
-        space_indices = []
-
-        for i in range(0, len(inputstr)):
-            if inputstr[i] == " ":
-                space_indices.append((i, self._determine_bracket(i)))
-
-        if len(space_indices) == 0: #Still doesnt account for if its long tho
-            return inputstr
-            
-        for i in range(0, len(space_indices)-1):
-            first_space_index = space_indices[i][0]
-            first_space_bracket = space_indices[i][1]
-            second_space_index = space_indices[i+1][0]
-            second_space_bracket = space_indices[i+1][1]
-
-            if first_space_bracket != second_space_bracket:
-                inputstr = inputstr[:first_space_index] + "\n" + inputstr[first_space_index+1:]
-        
-        if len(space_indices) == 1:
-            only_space_index = space_indices[0][0]
-            only_space_bracket = space_indices[0][1]
-            len_bracket = self._determine_bracket(len(inputstr)-1)
-
-            if only_space_bracket != len_bracket:
-                inputstr = inputstr[:only_space_index] + "\n" + inputstr[only_space_index+1:]  
-
-        last_space_index = space_indices[-1][0]
-        last_space_bracket = space_indices[-1][1]
-        len_bracket = self._determine_bracket(len(inputstr)-1)   
-
-        if last_space_bracket != len_bracket:
-                inputstr = inputstr[:last_space_index] + "\n" + inputstr[last_space_index+1:]      
-                
-        if len(inputstr) >= 59:
-            inputstr = inputstr[:space_indices[-1][0]] + "\n" + inputstr[space_indices[-1][0]+1:]
-            if len(inputstr) >= 60:
-                inputstr = inputstr[:56]
-                inputstr += "..."
-
-        return inputstr
+        linelength = 14
+        reformatted = '\n'.join(wrap(inputstr, width=linelength, max_lines=4, placeholder="..."))
+        return reformatted
 
     '''
     Actually draw the node based on x and y. Includs the text to go along with it.
@@ -496,6 +456,7 @@ class Node:
     def add_child(self, child):
         self.children.append(child)
 
+    #Node
     def serialization_dict(self):
         keys_to_save = {
             "input_text" : self.input_text,
@@ -506,6 +467,7 @@ class Node:
         return keys_to_save
         
 
+    #Node
     @staticmethod
     def _construct_from_payload(payload, parent, canvas_ref):
         node = Node(payload["input_text"], payload["depth"], parent, canvas_ref)
@@ -514,22 +476,15 @@ class Node:
             new_node = Node._construct_from_payload(child_node_payload, node, canvas_ref)
             node.children.append(new_node)
 
+        node.notes_frame = NotesFrame()
         for note_payload in payload["notes_frame"]["notes"]:
-            note = Note._construct_from_payload(note_payload, payload["notes_frame"])
+            note = Note._construct_from_payload(note_payload, node.notes_frame.main_frame)
             node.notes_frame.notes.append(note)
 
         return node
     
 
-    '''
-    Only requires an x, a y, and some input text.
-    children = Its children. Starts empty ofc.
-    dir = Which direction the next node will be added in
-    next_child = Which child gets the highlight next. This is a DRAWING
-        concern only.
-    tkinter_id = If it DOES get drawn, we want whatever ID tkinter assigned
-        to it so we can bind callbacks.
-    '''
+    #Node
     def __init__(self, input_text, depth, parent, canvas_ref, x=-1, y=-1):
         self.x = x
         self.y = y
@@ -607,6 +562,7 @@ class NotesFrame:
         self.notes.append(new_note)
         self.add_note_dialog.destroy()
 
+    #NotesFrame
     def __init__(self):
 
         self.notes_menu = Toplevel()
@@ -630,6 +586,7 @@ class NotesFrame:
         self.notes_menu.withdraw()
         self.notes_menu.protocol("WM_DELETE_WINDOW", lambda: self.notes_menu.withdraw())
 
+    #NotesFrame
     def serialization_dict(self):
         keys_to_save = {
             "notes" : [note.serialization_dict() for note in self.notes]
@@ -638,17 +595,19 @@ class NotesFrame:
 
 class Note:
 
+    #Note
     @staticmethod
     def _construct_from_payload(note_payload, frame_ref):
-        note = Note(frame_ref, note_payload["note_type_input"])
+        note = Note(frame_ref, note_payload["note_type_input"], note_payload["color"])
         note.contents = note_payload["contents"]
         return note
-
-#NOTE: Note type input, contentss
+    
+    #Note
     def serialization_dict(self):
         keys_to_save = {
             "note_type_input" : self.note_type_input,
-            "contents" : self.contents
+            "contents" : self.contents,
+            "color": self.color
         }
         return keys_to_save
 
@@ -675,11 +634,12 @@ class Note:
     def get_random_color(self):
         return "#{:02x}{:02x}{:02x}".format(random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
 
-
+    #Note
     def __init__(self, frame_ref, note_type_input, color):
         self.note_type_input = note_type_input
         self.frame_ref = frame_ref
         self.contents = ""
+        self.color = color
         self.label = Label(self.frame_ref, text=self.note_type_input, font=("Times New Roman", 14, "bold"), fg=color, borderwidth=2, relief="groove")
         self.label.pack(padx=5, anchor="w")
         self.note_preview = Text(self.frame_ref, borderwidth=1, relief="solid", height=8) #T = Text(root, bg, fg, bd, height, width, font, ..) 

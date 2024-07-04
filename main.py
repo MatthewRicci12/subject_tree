@@ -26,8 +26,8 @@ class App:
             tree = pickle.load(infile)
 
         payload = tree["root"]
-
-        tree = Tree.construct_from_payload(payload)
+ 
+        tree = Tree._construct_from_payload(payload)
         tree.redraw()
         tree.run()
         main()
