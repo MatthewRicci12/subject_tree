@@ -604,6 +604,10 @@ class Note:
     def _construct_from_payload(note_payload, frame_ref):
         note = Note(frame_ref, note_payload["note_type_input"], note_payload["color"])
         note.contents = note_payload["contents"]
+        note.note_preview.configure(state="normal") #new
+        note.note_preview.delete("1.0", END)
+        note.note_preview.insert("1.0", note.contents)
+        note.note_preview.configure(state="disabled")
         return note
     
     #Note
