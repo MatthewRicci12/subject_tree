@@ -270,7 +270,9 @@ class Tree:
 
         tree.root.notes_frame = NotesFrame()
         for note_payload in root_payload["notes_frame"]["notes"]:
-            note = Note._construct_from_payload(note_payload, tree.root.notes_frame.main_frame)
+            cur_row = len(tree.root.notes_frame.notes)
+            print(f"Cur row in side of Tree._construct_from_payload: {cur_row}")
+            note = Note._construct_from_payload(note_payload, tree.root.notes_frame.main_frame, cur_row)
             tree.root.notes_frame.notes.append(note)
 
         NotesFrame.labels = payload["labels"]
@@ -482,7 +484,9 @@ class Node:
 
         node.notes_frame = NotesFrame()
         for note_payload in payload["notes_frame"]["notes"]:
-            note = Note._construct_from_payload(note_payload, node.notes_frame.main_frame)
+            cur_row = len(node.notes_frame.notes)
+            print(f"Cur row in side of Node._construct_from_payload: {cur_row}")
+            note = Note._construct_from_payload(note_payload, node.notes_frame.main_frame, cur_row)
             node.notes_frame.notes.append(note)
 
         return node
@@ -562,7 +566,9 @@ class NotesFrame:
             self.labels[self.note_type.get()] = self.chosen_color
             label = self.note_type.get()
             color = self.chosen_color
-        new_note = Note(self.main_frame, label, color)
+        cur_row = len(self.notes)
+        print(f"Cur row in side of create_note_postdialog: {cur_row}")
+        new_note = Note(self.main_frame, label, color, cur_row)
         self.notes.append(new_note)
         self.add_note_dialog.destroy()
 
@@ -572,23 +578,39 @@ class NotesFrame:
         self.notes_menu = Toplevel()
         self.notes_menu.attributes("-topmost", True)
         self.notes_menu.geometry("1200x800")
+        self.notes_menu.rowconfigure(1, weight=1)
+        self.notes_menu.columnconfigure(0, weight=1)
     
         self.top_frame = Frame(self.notes_menu, width=1200, height=30, bg="orange")
-        self.top_frame.pack(fill=X)
+        self.top_frame.grid(row=0, column=0, sticky=EW)
+        self.top_frame.columnconfigure(0, weight=1)
 
         self.add_node_button = Button(self.top_frame, text = "Add Note", bg='orange',font=('Helvetica', 12), \
                                       relief='flat', command = self.add_note)
-        self.add_node_button.pack(side=TOP)
+        self.add_node_button.grid(row=0, column=0)
 
         self.main_frame = Frame(self.notes_menu)
-        self.main_frame.pack(fill = BOTH, expand = True)  
-
-        self.top_frame.pack_propagate(False)
+        self.main_frame.grid(row=1, column=0, sticky=NSEW) 
 
         self.notes = []
 
         self.notes_menu.withdraw()
         self.notes_menu.protocol("WM_DELETE_WINDOW", lambda: self.notes_menu.withdraw())
+
+    def swap_labels(self, to_widget):
+        from_widget = self.note_selected
+        from_widget_row = from_widget.grid_info()["row"]
+        to_widget_row = to_widget.grid_info()["row"]     
+
+        temp = self.notes[from_widget_row]
+        self.notes[from_widget_row] = self.notes[to_widget_row]
+        self.notes[to_widget_row] = self.notes[from_widget_row]
+
+        from_widget.grid(row=to_widget_row, column=0, sticky=EW, padx=(5, 5), pady=(0, 3))
+        to_widget.grid(row=from_widget_row, column=0, sticky=EW, padx=(5, 5), pady=(0, 3))
+        from_widget.selected = False
+        self.note_selected = None
+        from_widget.configure(background=from_widget.color)
 
     #NotesFrame
     def serialization_dict(self):
@@ -601,8 +623,8 @@ class Note:
 
     #Note
     @staticmethod
-    def _construct_from_payload(note_payload, frame_ref):
-        note = Note(frame_ref, note_payload["note_type_input"], note_payload["color"])
+    def _construct_from_payload(note_payload, frame_ref, cur_row):
+        note = Note(frame_ref, note_payload["note_type_input"], note_payload["color"], cur_row)
         note.contents = note_payload["contents"]
         note.note_preview.configure(state="normal") #new
         note.note_preview.delete("1.0", END)
@@ -642,17 +664,44 @@ class Note:
     def get_random_color(self):
         return "#{:02x}{:02x}{:02x}".format(random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
 
+       
+    def highlight(self, event): #A diagram would be great for this
+        widget = event.widget
+        cur_selected = self.note_selected
+
+        if not widget.selected and not cur_selected:
+            if cur_selected is not None:
+                cur_selected.selected = False 
+                cur_selected.configure(background=cur_selected.color)
+
+            widget.selected = True
+            self.note_selected = widget
+            widget.configure(background="#ECEC18")
+
+        elif widget is cur_selected:
+
+            widget.selected = False
+            self.note_selected = None
+            widget.configure(background=widget.color)
+
+        else:
+            self.frame_ref.swap_labels(widget)
     #Note
-    def __init__(self, frame_ref, note_type_input, color):
+    def __init__(self, frame_ref, note_type_input, color, cur_row):
         self.note_type_input = note_type_input
         self.frame_ref = frame_ref
         self.contents = ""
         self.color = color
+
         self.label = Label(self.frame_ref, text=self.note_type_input, font=("Times New Roman", 14, "bold"), fg=color, borderwidth=2, relief="groove")
-        self.label.pack(padx=5, anchor="w")
+        self.label.grid(row=cur_row*2, column = 0, sticky=NW, padx=5) #NW, other is N+E+W
+
+
         self.note_preview = Text(self.frame_ref, borderwidth=1, relief="solid", height=8) #T = Text(root, bg, fg, bd, height, width, font, ..) 
         self.note_preview.configure(state="disabled")
-        self.note_preview.pack(fill=X, padx=(5, 5), pady=(0, 3)) #Order: (left, right) (up, down)
-        self.note_preview.bind("<Button-1>", lambda event: self.popup_textbox(event))
+        self.note_preview.grid(row=cur_row*2+1, column=0, sticky=N+E+W, padx=(5, 5), pady=(0, 3)) #TODO
 
+
+        #self.note_preview.bind("<Button-1>", lambda event: self.popup_textbox(event))
+        self.note_preview.bind("<Button-1>", self.highlight)
 
