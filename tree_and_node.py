@@ -273,7 +273,8 @@ class Tree:
             cur_row = len(tree.root.notes_frame.notes)
             print(f"Cur row in side of Tree._construct_from_payload: {cur_row}")
             note = Note._construct_from_payload(note_payload, tree.root.notes_frame.main_frame, cur_row)
-            note.note_preview.bind("<Button-1>", tree.root.notes_frame.highlight) #TODO: T_T
+            note.note_preview.bind("<Button-1>", lambda event, note=note: tree.root.notes_frame.mouse_click(event, note)) #TODO: T_T This is ghastly.
+            note.note_preview.bind("<Double-Button-1>", tree.root.notes_frame.double_click)
             tree.root.notes_frame.notes.append(note)
 
         NotesFrame.labels = payload["labels"]
@@ -554,7 +555,32 @@ class NotesFrame:
         submit_button = Button(self.add_note_dialog, text="Submit", command=self.create_note_postdialog)
         submit_button.pack()
 
+    def mouse_click(self, event, note_obj):
+        widget = event.widget
+        self.note_obj = note_obj
+        widget.after(300, self.mouse_action, event)
 
+
+    def double_click(self, event):
+        self.double_click_flag = True
+        
+    def mouse_action(self, event):
+        widget = event.widget
+        if self.double_click_flag:
+            self.double_click_flag = False
+            self.highlight(event)
+        else:
+            self.note_obj.popup_textbox(event)
+
+    def construct_and_bind_note(self, label, color):
+        cur_row = len(self.notes)
+        new_note = Note(self.main_frame, label, color, cur_row)
+
+        new_note.note_preview.bind("<Button-1>", lambda event, note=new_note: self.mouse_click(event, new_note))
+        new_note.note_preview.bind("<Double-Button-1>", self.double_click)
+
+        return new_note       
+    
     def create_note_postdialog(self):
         #Are we using an old label colour or not?
         label = None
@@ -567,11 +593,10 @@ class NotesFrame:
             self.labels[self.note_type.get()] = self.chosen_color
             label = self.note_type.get()
             color = self.chosen_color
-        cur_row = len(self.notes)
-        new_note = Note(self.main_frame, label, color, cur_row)
-        new_note.note_preview.bind("<Button-1>", self.highlight)
+        new_note = self.construct_and_bind_note(label, color)
         self.notes.append(new_note)
         self.add_note_dialog.destroy()
+
 
     #NotesFrame
     def __init__(self):
@@ -599,6 +624,7 @@ class NotesFrame:
         self.notes_menu.protocol("WM_DELETE_WINDOW", lambda: self.notes_menu.withdraw())
 
         self.note_selected = None
+        self.clicked = None
 
     def swap_labels(self, to_widget):
         from_widget = self.note_selected
@@ -704,5 +730,4 @@ class Note:
         self.note_preview.grid(row=cur_row*2+1, column=0, sticky=N+E+W, padx=(5, 5), pady=(0, 3)) #TODO
         self.note_preview.selected = False
         self.note_preview.color = "white"
-        #self.note_preview.bind("<Button-1>", lambda event: self.popup_textbox(event))
 
