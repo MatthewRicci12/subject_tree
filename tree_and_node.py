@@ -510,12 +510,20 @@ class Node:
 
 class NotesFrame:
 
+    COLOR = 0
+    REF_COUNT = 1
+
     labels = OrderedDict()
 
     def show_self(self):
         try:
             self.notes_menu.deiconify()
             self.notes_menu.grab_set()
+
+            #set colors
+            for note in self.notes:
+                cur_note_type_input = note.note_type_input
+                note.label.configure(fg=self.labels[cur_note_type_input][self.COLOR])
         finally:
             self.notes_menu.grab_release()
 
@@ -581,13 +589,14 @@ class NotesFrame:
         if len(self.note_type.get()) == 0: #Old label was chosen
             chosen_label_index = self.prevous_label_listbox.curselection()[0]
             label = self.prevous_label_listbox.get(chosen_label_index)
-            color = self.labels[label]
+            color = self.labels[label][self.COLOR]
+            self.labels[label][self.REF_COUNT] += 1
         else:
-            self.labels[self.note_type.get()] = self.chosen_color
+            self.labels[self.note_type.get()] = [self.chosen_color, 1]
             label = self.note_type.get()
             color = self.chosen_color
         cur_row = len(self.notes)
-        new_note = Note(self.main_frame, self.note_type, color, cur_row)       
+        new_note = Note(self.main_frame, label, color, cur_row)       
         self.notes.append(new_note)
         self.add_note_dialog.destroy()
 
@@ -597,6 +606,38 @@ class NotesFrame:
             self.note_selected.selected = False
             self.note_selected.configure(background=self.note_selected.color)
             self.note_selected = None
+
+    def redraw(self):
+        self.change_note_type_color_dialog.destroy()
+        self.show_self()
+
+    def dialog_change_note_type_color(self):
+        self.change_note_type_color_dialog = Toplevel(takefocus=True)
+        self.change_note_type_color_dialog.attributes("-topmost", True)
+        self.change_note_type_color_dialog.grab_set()
+    
+        self.prevous_label_listbox = Listbox(self.change_note_type_color_dialog)
+        i = 1
+        for label in self.labels.keys():
+            self.prevous_label_listbox.insert(i, label)
+            i += 1
+        self.prevous_label_listbox.pack()
+        self.prevous_label_listbox.bind('<<ListboxSelect>>', self.postdialog_change_note_type_color)
+        self.change_note_type_color_dialog.protocol("WM_DELETE_WINDOW", self.redraw)
+
+    def postdialog_change_note_type_color(self, event):
+        w = event.widget
+        index = int(w.curselection()[0])
+        note_type_input = w.get(index)        
+        chosen_color = colorchooser.askcolor(parent=self.change_note_type_color_dialog)[1]
+
+        if chosen_color is None:
+            return
+        else:
+            self.labels[note_type_input][self.COLOR] = chosen_color
+    
+
+        
 
     #NotesFrame
     def __init__(self):
@@ -614,6 +655,10 @@ class NotesFrame:
         self.add_node_button = Button(self.top_frame, text = "Add Note", bg='orange',font=('Helvetica', 12), \
                                       relief='flat', command = self.add_note)
         self.add_node_button.grid(row=0, column=0)
+    
+        self.change_note_type_color_button = Button(self.top_frame, text = "Change note type color", bg='orange',font=('Helvetica', 12), \
+                                      relief='flat', command = self.dialog_change_note_type_color)
+        self.change_note_type_color_button.grid(row=0, column=1)
 
         self.main_frame = Frame(self.notes_menu)
         self.main_frame.grid(row=1, column=0, sticky=NSEW) 
@@ -673,7 +718,10 @@ class NotesFrame:
         selected_note.label.destroy()
         self.notes.remove(selected_note)
 
+        self.labels[selected_note.note_type_input][self.REF_COUNT] -= 1
 
+        if self.labels[selected_note.note_type_input][self.REF_COUNT] == 0:
+            del self.labels[selected_note.note_type_input]
 
     #NotesFrame
     def serialization_dict(self):
