@@ -572,16 +572,7 @@ class NotesFrame:
             if not self.note_selected:
                 widget.note_ref.popup_textbox(event)
             else:
-                self.highlight(event)
-
-    def construct_and_bind_note(self, label, color):
-        cur_row = len(self.notes)
-        new_note = Note(self.main_frame, label, color, cur_row)
-
-        new_note.note_preview.bind("<Button-1>", self.mouse_click)
-        new_note.note_preview.bind("<Double-Button-1>", self.double_click)
-
-        return new_note       
+                self.highlight(event)   
     
     def create_note_postdialog(self):
         #Are we using an old label colour or not?
@@ -595,7 +586,8 @@ class NotesFrame:
             self.labels[self.note_type.get()] = self.chosen_color
             label = self.note_type.get()
             color = self.chosen_color
-        new_note = self.construct_and_bind_note(label, color)
+        cur_row = len(self.notes)
+        new_note = Note(self.main_frame, self.note_type, color, cur_row)       
         self.notes.append(new_note)
         self.add_note_dialog.destroy()
 
@@ -625,6 +617,7 @@ class NotesFrame:
 
         self.main_frame = Frame(self.notes_menu)
         self.main_frame.grid(row=1, column=0, sticky=NSEW) 
+        self.main_frame.notes_frame_ref = self
 
         self.notes = []
 
@@ -671,6 +664,17 @@ class NotesFrame:
 
         else:
             self.swap_labels(widget)
+
+    def menu_delete_note(self):
+        selected_note = self.selected_note
+        selected_note.note_preview.grid_remove()
+        selected_note.label.grid_remove()
+        selected_note.note_preview.destroy()
+        selected_note.label.destroy()
+        self.notes.remove(selected_note)
+
+
+
     #NotesFrame
     def serialization_dict(self):
         keys_to_save = {
@@ -723,6 +727,18 @@ class Note:
     def get_random_color(self):
         return "#{:02x}{:02x}{:02x}".format(random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
 
+    def init_popup_menu(self):
+        self.popup_menu = Menu(self.frame_ref, tearoff = 0)
+        self.popup_menu.add_command(label = "Delete note", command = self.frame_ref.notes_frame_ref.menu_delete_note)
+
+    def show_popup_menu(self, event):
+        widget = event.widget
+        self.frame_ref.notes_frame_ref.selected_note = widget.note_ref
+        try: 
+            self.popup_menu.tk_popup(event.x_root, event.y_root) 
+        finally: 
+            self.popup_menu.grab_release() 
+
     #Note
     def __init__(self, frame_ref, note_type_input, color, cur_row):
         self.note_type_input = note_type_input
@@ -740,4 +756,7 @@ class Note:
         self.note_preview.selected = False
         self.note_preview.color = "white"
         self.note_preview.note_ref = self
-
+        self.note_preview.bind("<Button-1>", self.frame_ref.notes_frame_ref.mouse_click)
+        self.note_preview.bind("<Double-Button-1>", self.frame_ref.notes_frame_ref.double_click)
+        self.note_preview.bind("<Button-3>", self.show_popup_menu)
+        self.init_popup_menu()
