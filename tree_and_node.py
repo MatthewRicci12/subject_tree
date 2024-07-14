@@ -584,16 +584,18 @@ class NotesFrame:
     
     def create_note_postdialog(self):
         #Are we using an old label colour or not?
-        label = None
+        label = self.note_type.get()
         color = None
-        if len(self.note_type.get()) == 0: #Old label was chosen
+        if len(label) == 0: #Old label was chosen
             chosen_label_index = self.prevous_label_listbox.curselection()[0]
             label = self.prevous_label_listbox.get(chosen_label_index)
             color = self.labels[label][self.COLOR]
             self.labels[label][self.REF_COUNT] += 1
+        elif label in self.labels:
+            color = self.labels[label][self.COLOR] #Merge opportunity with code above
+            self.labels[label][self.REF_COUNT] += 1           
         else:
-            self.labels[self.note_type.get()] = [self.chosen_color, 1]
-            label = self.note_type.get()
+            self.labels[label] = [self.chosen_color, 1]
             color = self.chosen_color
         cur_row = len(self.notes)
         new_note = Note(self.main_frame, label, color, cur_row)       
