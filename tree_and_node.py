@@ -206,8 +206,10 @@ class Tree:
         node_ref = self.tkinter_nodes_to_ids[self.clicked]  
         self.new_node_name = self.inputtxt.get()
         self.rename_node_dialog.destroy()
-        self.canvas.delete(node_ref.tkinter_id)
-        node_ref.draw_circle(self.new_node_name)
+        self.canvas.itemconfig(node_ref.text_id, text=self.new_node_name)
+        node_ref.input_text = self.new_node_name
+        # self.canvas.delete(node_ref.tkinter_id)
+        # node_ref.draw_circle(self.new_node_name)
         
     def popup(self): 
         messagebox.showinfo("",  "ID of clicked widget: {}".format(self.clicked)) 
@@ -455,7 +457,7 @@ class Node:
         self.tkinter_id = id
 
         input_text = self._process_text(input_text)
-        self.canvas_ref.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
+        self.text_id = self.canvas_ref.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
         #self._draw_point(x1-15, y1-RADIUS, self.canvas_ref)
         #self.canvas_ref.create_rectangle(x0+HEURISTIC_1, y0+HEURISTIC_2, x1+OFFSET-HEURISTIC_1, y1-HEURISTIC_2)
         return id
