@@ -684,15 +684,19 @@ class NotesFrame:
 
     def swap_labels(self, to_widget):
         from_widget = self.note_selected
-        from_widget_row = from_widget.grid_info()["row"]
-        to_widget_row = to_widget.grid_info()["row"]
+        from_widget_row_text = from_widget.grid_info()["row"]
+        to_widget_row_text = to_widget.grid_info()["row"]
+        from_widget_row_label = from_widget_row_text - 1
+        to_widget_row_label = to_widget_row_text - 1
 
-        temp = self.notes[from_widget_row>>1]
-        self.notes[from_widget_row>>1] = self.notes[to_widget_row>>1]
-        self.notes[to_widget_row>>1] = temp
+        temp = self.notes[from_widget_row_text>>1]
+        self.notes[from_widget_row_text>>1] = self.notes[to_widget_row_text>>1]
+        self.notes[to_widget_row_text>>1] = temp
 
-        from_widget.grid(row=to_widget_row, column=0, sticky=EW, padx=(5, 5), pady=(0, 3))
-        to_widget.grid(row=from_widget_row, column=0, sticky=EW, padx=(5, 5), pady=(0, 3))
+        from_widget.grid(row=to_widget_row_text, column=0, sticky=EW, padx=(5, 5), pady=(0, 3))
+        to_widget.grid(row=from_widget_row_text, column=0, sticky=EW, padx=(5, 5), pady=(0, 3))
+        from_widget.associated_label.grid(row=to_widget_row_label, column=0, sticky=NW, padx=5)
+        to_widget.associated_label.grid(row=from_widget_row_label, column=0, sticky=NW, padx=5)
         from_widget.selected = False
         self.note_selected = None
         from_widget.configure(background=from_widget.color)
@@ -804,10 +808,12 @@ class Note:
         self.color = color
 
         self.label = Label(self.frame_ref, text=self.note_type_input, font=("Times New Roman", 14, "bold"), fg=color, borderwidth=2, relief="groove")
+        self.label.note_ref = self
         self.label.grid(row=cur_row*2, column = 0, sticky=NW, padx=5) #NW, other is N+E+W
 
 
         self.note_preview = Text(self.frame_ref, borderwidth=1, relief="solid", height=8) #T = Text(root, bg, fg, bd, height, width, font, ..) 
+        self.note_preview.associated_label = self.label
         self.note_preview.configure(state="disabled")
         self.note_preview.grid(row=cur_row*2+1, column=0, sticky=N+E+W, padx=(5, 5), pady=(0, 3)) #TODO
         self.note_preview.selected = False
