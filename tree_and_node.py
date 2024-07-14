@@ -250,7 +250,10 @@ class Tree:
         self.tkinter_nodes_to_ids[tkinter_id] = node
         self.canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
         self.canvas.tag_bind(tkinter_id, '<Button-1>', lambda event, id = tkinter_id: self.mouse_click(event, id))             
-        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', lambda event: self.double_click(event))                   
+        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', lambda event: self.double_click(event))     
+        self.canvas.tag_bind(node.text_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
+        self.canvas.tag_bind(node.text_id, '<Button-1>', lambda event, id = tkinter_id: self.mouse_click(event, id))             
+        self.canvas.tag_bind(node.text_id, '<Double-Button-1>', lambda event: self.double_click(event))                       
         #Grid it
         self.grid[self._determine_row(node.y)][self._determine_col(node.x)] = 1
 
@@ -276,7 +279,6 @@ class Tree:
         tree.root.notes_frame = NotesFrame()
         for note_payload in root_payload["notes_frame"]["notes"]:
             cur_row = len(tree.root.notes_frame.notes)
-            print(f"Cur row in side of Tree._construct_from_payload: {cur_row}")
             note = Note._construct_from_payload(note_payload, tree.root.notes_frame.main_frame, cur_row)
             note.note_preview.bind("<Button-1>", tree.root.notes_frame.mouse_click) #TODO: T_T This is ghastly.
             note.note_preview.bind("<Double-Button-1>", tree.root.notes_frame.double_click)
