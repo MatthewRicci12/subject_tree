@@ -291,7 +291,7 @@ class Tree:
     #Tree
     def __init__(self, input_text=""): #Maybe more like canvas? And make it a member?
         self.tree_window = Tk()
-        self.tree_window.geometry("1000x600")
+        self.tree_window.geometry("1500x600")
         self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800)
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)  
 
