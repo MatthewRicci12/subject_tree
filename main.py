@@ -51,6 +51,7 @@ class App:
         self.tree_creation_dialog = Toplevel(takefocus=True) #1
         self.tree_creation_dialog.attributes("-topmost", True) #1
         self.tree_creation_dialog.grab_set() #1
+        self.tree_creation_dialog.bind('<Return>', lambda event: self.create_cur_tree())
 
         self.subject = StringVar() #1
         self.inputtxt = Entry(self.tree_creation_dialog, textvariable=self.subject) #1

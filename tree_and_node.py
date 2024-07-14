@@ -61,6 +61,7 @@ class Tree:
 
     def return_to_main_menu(self):
         self.tree_window.destroy()
+        NotesFrame.labels = OrderedDict()
 
     #Tree
     def serialization_dict(self):
@@ -134,6 +135,7 @@ class Tree:
         self.add_child_dialog = Toplevel(takefocus=True)
         self.add_child_dialog.attributes("-topmost", True)
         self.add_child_dialog.grab_set()
+        self.add_child_dialog.bind('<Return>', lambda event: self.submit_child())
 
         self.child_name = StringVar()
         self.inputtxt = Entry(self.add_child_dialog, textvariable=self.child_name) 
@@ -191,6 +193,7 @@ class Tree:
         self.rename_node_dialog = Toplevel(takefocus=True)
         self.rename_node_dialog.attributes("-topmost", True)
         self.rename_node_dialog.grab_set()
+        self.rename_node_dialog.bind('<Return>', lambda event: self.postdialog_rename_node())
 
         self.new_node_name = StringVar()
         self.inputtxt = Entry( self.rename_node_dialog, textvariable=self.new_node_name) 
@@ -534,6 +537,7 @@ class NotesFrame:
         self.add_note_dialog = Toplevel(takefocus=True)
         self.add_note_dialog.attributes("-topmost", True)
         self.add_note_dialog.grab_set()
+        self.add_note_dialog.bind('<Return>', lambda event: self.create_note_postdialog())
 
         #Type of note
         self.note_type_label = Label(self.add_note_dialog, text="Enter the type of note")
@@ -559,7 +563,6 @@ class NotesFrame:
         self.color_pick_label.pack()
         self.prevous_label_listbox.pack()
 
-        #Submit
         submit_button = Button(self.add_note_dialog, text="Submit", command=self.create_note_postdialog)
         submit_button.pack()
 
