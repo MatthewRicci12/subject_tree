@@ -8,6 +8,7 @@ import random
 import pickle
 from textwrap3 import wrap
 from collections import OrderedDict
+import functools
 
 RADIUS = 50
 OFFSET = 70
@@ -29,55 +30,140 @@ DOWN_DIR = 0
 LEFT_DIR = 1
 RIGHT_DIR = 2
 UP_DIR = 3
+MAX_NODES_ON_SCREEN = 35
 
 
-half_width = 500
-half_height = 400
+half_width = 750
+half_height = 300 
+
+def no_event(func):
+    @functools.wraps(func)
+    def wrapper(self, *args):
+        return func(self)
+    return wrapper
 
 class Tree:
 
-    def move(self, amount):
-        if len(self.central_node.children) < 35:
-            return
-        self.central_node.sliding_window_start += amount
-        self.redraw(self.canvas)
+    #Tree:Dialog functions
+    #GOOD
+    def dialog_menu_add_child_node(self):
+        self.selected_node = self.tkinter_nodes_to_ids[self.clicked]
+        self.add_child_dialog = Toplevel(takefocus=True)
+        self.add_child_dialog.attributes("-topmost", True)
+        self.add_child_dialog.grab_set()
+        self.add_child_dialog.bind('<Return>', self.postdialog_submit_child)
+
+        self.submitted_child_name_stringvar = StringVar()
+        self.inputtxt = Entry(self.add_child_dialog, textvariable=self.submitted_child_name_stringvar) 
+        self.inputtxt.pack()    
+        self.printButton = Button(self.add_child_dialog, text = "Submit", \
+                            command = self.postdialog_submit_child) 
+        self.printButton.pack()
+
+    #GOOD
+    def dialog_menu_batch_add_child_node(self):
+        self.selected_node = self.tkinter_nodes_to_ids[self.clicked]
+        self.add_child_dialog = Toplevel(takefocus=True)
+        self.add_child_dialog.attributes("-topmost", True)
+        self.add_child_dialog.grab_set()
+
+        self.inputtxt = Text(self.add_child_dialog) 
+        self.inputtxt.pack()    
+        self.printButton = Button(self.add_child_dialog, text = "Submit", \
+                            command = self.postdialog_submit_child_batch) 
+        self.printButton.pack()
+
+    #GOOD
+    def dialog_menu_rename_node(self): 
+        self.rename_node_dialog = Toplevel(takefocus=True)
+        self.rename_node_dialog.attributes("-topmost", True)
+        self.rename_node_dialog.grab_set()
+        self.rename_node_dialog.bind('<Return>', self.postdialog_rename_node)
+
+        self.inputtxt = Entry(self.rename_node_dialog) 
+        self.inputtxt.pack()    
+        self.printButton = Button(self.rename_node_dialog, text = "Submit", \
+                            command = self.postdialog_rename_node) 
+        self.printButton.pack()
+
+    #Tree:Postdialog functions
+    #GOOD
+    @no_event
+    def postdialog_submit_child(self):
+        self.add_child_dialog.destroy()
+        submitted_child_name = self.submitted_child_name_stringvar.get()
+
+        self.add_node(self.selected_node, submitted_child_name)
 
 
-    def mouse_click(self, event, id):
-        self.clicked = id
-        self.canvas.after(300, self.mouse_action, event)
+    #GOOD
+    @no_event
+    def postdialog_submit_child_batch(self):
+        children_names = self.inputtxt.get("1.0",END).split("\n")
+        self.add_child_dialog.destroy()
 
+        for child_name in children_names:
+            if len(child_name) > 0:
+                self.add_node(self.selected_node, child_name)
 
-    def double_click(self, event):
-        self.double_click_flag = True
-        
-    def mouse_action(self, event):
-        if self.double_click_flag:
-            self.double_click_flag = False
-            self.invoke_notes(self.clicked)
-        else:
-            self.change_root(self.clicked)
-    
+    #GOOD
+    @no_event
+    def postdialog_rename_node(self):
+        new_node_name = self.inputtxt.get()
+        self.rename_node_dialog.destroy()
 
-    def return_to_main_menu(self):
-        self.tree_window.destroy()
-        NotesFrame.labels = OrderedDict()
+        selected_node = self.tkinter_nodes_to_ids[self.clicked]  
+        self.canvas.itemconfig(selected_node.text_id, text=new_node_name)
+        selected_node.input_text = new_node_name
 
-    #Tree
-    def serialization_dict(self):
-        keys_to_pickle = {"root" : self.root.serialization_dict(),
-                          "labels": NotesFrame.labels}
-        return keys_to_pickle
+    #GOOD
+    def menu_delete_node(self):
+        selected_node = self.tkinter_nodes_to_ids[self.clicked]
 
-    def save_tree(self):
-        try:
-            with open("saved_trees/{}.pickle".format(self.root.input_text), "wb") as outfile:
-                pickle.dump(self.serialization_dict(), outfile)
-            messagebox.showinfo("Successful file save",  "File saved successfully!") 
-        except IOError:
-            print("Something went wrong while saving the file.")
+        if selected_node is self.central_node:
+            if selected_node is self.root:
+                if not selected_node.children:    #Root was deleted, has no successor.
+                    self.return_to_main_menu()
+                else:                             #Del root, sucessor
+                    first_child = self.root.children[0] 
 
+                    self.root = first_child
+                    self.root.x = half_width
+                    self.root.y = half_height
+                    self.root.parent = None 
+                    self.central_node = self.root
+                    self.redraw()
+            else:                                 #Central node, but not root   
+                selected_node.parent.children.remove(selected_node)
+                self.central_node = selected_node.parent
+                self.redraw()
+        else:                                     #Not central; simple child node currently visible.
+            #A simple child node that is currently visible
+            selected_node.parent.children.remove(selected_node)
+            self.redraw()
+            
+    #GOOD
+    def menu_go_to_parent(self):
+        selected_node = self.tkinter_nodes_to_ids[self.clicked]
+        parent = selected_node.parent
+        self.central_node = parent
+        self.redraw()
 
+    #Tree:Window-building functions
+        #GOOD
+    def init_popup_menu(self):
+        self.popup_menu = Menu(self.tree_window, tearoff = 0)
+
+        self.popup_menu.add_command(label = "Add child node", command = self.dialog_menu_add_child_node)
+        self.popup_menu.add_command(label = "Batch add child node", command = self.dialog_menu_batch_add_child_node)
+        self.popup_menu.add_command(label = "Rename node", command = self.dialog_menu_rename_node)
+        self.popup_menu.add_command(label = "Delete node", command = self.menu_delete_node)
+        #self.popup_menu.add_command(label = "Change style", command = self.popup)
+        self.popup_menu.add_command(label = "Go to parent", command = self.menu_go_to_parent)
+
+        self.double_click_flag = False        
+
+    #GOOD
     def init_side_frame(self):
         self.frame = Frame(self.tree_window,bg='orange',width=200,height=800)
         self.frame.pack(side=LEFT)
@@ -112,107 +198,59 @@ class Tree:
         self.left_button.grid(row = 0, column = 0)
         self.right_button.grid(row = 0, column = 1)
 
-
         self.depth_label = Label(self.frame, text = "Depth={}".format(self.central_node.depth), bg='orange',font=('Helvetica', 20))
         self.depth_label.grid(row = 3, column = 0, sticky="s")
 
-
         self.frame.grid_propagate(False)
 
-    def submit_child(self):
-        self.add_child_dialog.destroy()
-        self.add_node(self.node_ref, self.child_name.get())
 
-    def submit_child_batch(self):
-        children_names = self.inputtxt.get("1.0",END)
-        self.add_child_dialog.destroy()
-        for child_name in children_names.split("\n"):
-            if len(child_name) > 0:
-                self.add_node(self.node_ref, child_name)
+    #Tree:Top-level functions
+    #GOOD
+    def move(self, amount):
+        num_children_nodes_visible = self.central_node.children
 
-    def menu_add_child_node(self):
-        self.node_ref = self.tkinter_nodes_to_ids[self.clicked]
-        self.add_child_dialog = Toplevel(takefocus=True)
-        self.add_child_dialog.attributes("-topmost", True)
-        self.add_child_dialog.grab_set()
-        self.add_child_dialog.bind('<Return>', lambda event: self.submit_child())
-
-        self.child_name = StringVar()
-        self.inputtxt = Entry(self.add_child_dialog, textvariable=self.child_name) 
-        self.inputtxt.pack()    
-        self.printButton = Button(self.add_child_dialog, text = "Submit", \
-                            command = self.submit_child) 
-        self.printButton.pack()
-      
-
-    def menu_batch_add_child_node(self):
-        self.node_ref = self.tkinter_nodes_to_ids[self.clicked]
-        self.add_child_dialog = Toplevel(takefocus=True)
-        self.add_child_dialog.attributes("-topmost", True)
-        self.add_child_dialog.grab_set()
-
-        self.inputtxt = Text(self.add_child_dialog) 
-        self.inputtxt.pack()    
-        self.printButton = Button(self.add_child_dialog, text = "Submit", \
-                            command = self.submit_child_batch) 
-        self.printButton.pack()
-
-    def menu_delete_node(self):
-        node_ref = self.tkinter_nodes_to_ids[self.clicked]
-
-        if node_ref is self.central_node:
-            if node_ref is self.root:
-                if not node_ref.children:         #Del root, no successor
-                    self.return_to_main_menu()
-                else:                             #Del root, sucessor
-                    self.root = self.root.children[0] #Lose pointer #1
-                    self.root.x = half_width
-                    self.root.y = half_height
-                    self.root.parent = None #Lose pointer #2
-                    self.central_node = self.root
-                    self.redraw()
-            else:            
-                parent = node_ref.parent         #Central, not root
-                parent.children.remove(node_ref) #Lose pointer here
-                self.central_node = parent
-                self.redraw()
-        else:                                    #Not central
-            #A simple child node that is currently visible
-            parent = node_ref.parent   
-            parent.children.remove(node_ref)
-            self.redraw()
-            
-    def menu_go_to_parent(self):
-        node_ref = self.tkinter_nodes_to_ids[self.clicked]
-        parent = node_ref.parent
-        self.central_node = parent
+        if len(num_children_nodes_visible) < MAX_NODES_ON_SCREEN:
+            return
+        self.central_node.sliding_window_start += amount
         self.redraw()
 
-    def menu_rename_node(self):
-        node_ref = self.tkinter_nodes_to_ids[self.clicked]    
-        self.rename_node_dialog = Toplevel(takefocus=True)
-        self.rename_node_dialog.attributes("-topmost", True)
-        self.rename_node_dialog.grab_set()
-        self.rename_node_dialog.bind('<Return>', lambda event: self.postdialog_rename_node())
+    #GOOD
+    def mouse_click(self, event, id):
+        self.clicked = id
+        self.canvas.after(300, self.mouse_action, event)
 
-        self.new_node_name = StringVar()
-        self.inputtxt = Entry( self.rename_node_dialog, textvariable=self.new_node_name) 
-        self.inputtxt.pack()    
-        self.printButton = Button(self.rename_node_dialog, text = "Submit", \
-                            command = self.postdialog_rename_node) 
-        self.printButton.pack()
+    #GOOD
+    @no_event
+    def double_click(self):
+        self.double_click_flag = True
 
-    def postdialog_rename_node(self):
-        node_ref = self.tkinter_nodes_to_ids[self.clicked]  
-        self.new_node_name = self.inputtxt.get()
-        self.rename_node_dialog.destroy()
-        self.canvas.itemconfig(node_ref.text_id, text=self.new_node_name)
-        node_ref.input_text = self.new_node_name
-        # self.canvas.delete(node_ref.tkinter_id)
-        # node_ref.draw_circle(self.new_node_name)
-        
-    def popup(self): 
-        messagebox.showinfo("",  "ID of clicked widget: {}".format(self.clicked)) 
+    #GOOD
+    @no_event        
+    def mouse_action(self):
+        if self.double_click_flag:
+            self.double_click_flag = False
+            self.invoke_notes(self.clicked)
+        else:
+            self.change_root(self.clicked)
+    
+    #TODO: Any more elegant way to do this? It's tough.
+    def return_to_main_menu(self):
+        NotesFrame.labels = OrderedDict()
+        self.tree_window.destroy()
+
+    #GOOD
+    def save_tree(self):
+        try:
+            with open("saved_trees/{}.pickle".format(self.root.input_text), "wb") as outfile:
+                pickle.dump(self.serialization_dict(), outfile)
+            messagebox.showinfo("Successful file save",  "File saved successfully!") 
+        except IOError:
+            print("Something went wrong while saving the file.")
+
+
+    # def popup(self): 
+    #     messagebox.showinfo("",  "ID of clicked widget: {}".format(self.clicked)) 
+
 
     def show_popup_menu(self, event, id):
         self.clicked = id
@@ -221,41 +259,34 @@ class Tree:
         finally: 
             self.popup_menu.grab_release() 
 
-
-    def init_popup_menu(self):
-        self.popup_menu = Menu(self.tree_window, tearoff = 0)
-
-        self.popup_menu.add_command(label = "Add child node", command = self.menu_add_child_node)
-        self.popup_menu.add_command(label = "Batch add child node", command = self.menu_batch_add_child_node)
-        self.popup_menu.add_command(label = "Rename node", command = self.menu_rename_node)
-        self.popup_menu.add_command(label = "Delete node", command = self.menu_delete_node)
-        self.popup_menu.add_command(label = "Change style", command = self.popup)
-        self.popup_menu.add_command(label = "Go to parent", command = self.menu_go_to_parent)
-
-        self.double_click_flag = False
-
+    #GOOD
     def invoke_notes(self, tkinter_id):
-        node_ref = self.tkinter_nodes_to_ids[tkinter_id]
-        node_ref.open_notes_menu()
+        selected_node = self.tkinter_nodes_to_ids[tkinter_id]
+        selected_node.open_notes_menu()
         
-    def _reset_bookeeping_info(self):
+    #GOOD
+    def reset_bookkeeping_info(self):
         self.grid = [[0 for _ in range(5)] for __ in range(7)]
         self.tkinter_nodes_to_ids = {}
         self.node_queue = []
 
-    def _register_node(self, node, input_text):
+    def register_node(self, node, input_text):
         #Draw it
         tkinter_id = node.draw_circle(input_text)
+
         #Map it
         self.tkinter_nodes_to_ids[tkinter_id] = node
         self.canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
         self.canvas.tag_bind(tkinter_id, '<Button-1>', lambda event, id = tkinter_id: self.mouse_click(event, id))             
-        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', lambda event: self.double_click(event))     
+        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', self.double_click)     
         self.canvas.tag_bind(node.text_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
         self.canvas.tag_bind(node.text_id, '<Button-1>', lambda event, id = tkinter_id: self.mouse_click(event, id))             
-        self.canvas.tag_bind(node.text_id, '<Double-Button-1>', lambda event: self.double_click(event))                       
+        self.canvas.tag_bind(node.text_id, '<Double-Button-1>', self.double_click)   
+
         #Grid it
-        self.grid[self._determine_row(node.y)][self._determine_col(node.x)] = 1
+        node_row = self.determine_row(node.y)
+        node_col = self.determine_col(node.x)
+        self.grid[node_row][node_col] = 1
 
         #Queue it
         self.node_queue.append((node.x, node.y+VERTICAL_GAP, UP_DIR))
@@ -263,7 +294,93 @@ class Tree:
         self.node_queue.append((node.x+HORIZONTAL_GAP, node.y, LEFT_DIR))
         self.node_queue.append((node.x, node.y-VERTICAL_GAP, DOWN_DIR))
 
-    #Tree
+    def determine_row(self, y):
+        root_y = self.root.y
+        deviations = 0
+        delta = y - root_y
+        return 7//2+delta//VERTICAL_GAP
+
+
+    def determine_col(self, x):
+        root_x = self.root.x
+        deviations = 0
+        delta = x - root_x
+        return 5//2+delta//HORIZONTAL_GAP
+
+    def print_grid(self):
+        s = [[str(e) for e in row] for row in self.grid]
+        lens = [max(map(len, col)) for col in zip(*s)]
+        fmt = '\t'.join('{{:{}}}'.format(x) for x in lens)
+        table = [fmt.format(*row) for row in s]
+        print('\n'.join(table))
+        print()
+
+    def no_collide(self, grid_x, grid_y):
+        return self.grid[grid_y][grid_x] == 0  
+    
+    def change_root(self, tkinter_id):
+        selected_node = self.tkinter_nodes_to_ids[tkinter_id]  
+        self.central_node = selected_node
+        self.central_node.x = half_width
+        self.central_node.y = half_height        
+        self.redraw()
+
+    def add_existing_node(self, parent_node, new_node, do_add_child=True):
+        if do_add_child:
+            parent_node.add_child(new_node)
+
+        if parent_node is self.central_node:
+            '''
+            Having it run at least once because: ?
+            '''
+            while True:
+                if not self.node_queue: #Tree is locked
+                    return
+                
+                new_node.x, new_node.y, source_dir = self.node_queue.pop(0)
+                grid_x, grid_y = self.determine_col(new_node.x), self.determine_row(new_node.y)
+
+                if not new_node._in_bounds(source_dir) or not self.no_collide(grid_x, grid_y):
+                    continue #This one is bad, but we keep trying.
+
+                self.register_node(new_node, new_node.input_text)
+                break #Break if we found a coordinate. No need to keep pumping.
+
+    '''
+    Make new Node, add child no matter what.
+
+    If parent_node is central node, we populate its
+    x and y based on what we pop off the queue. We also
+    have the notion of an equivalent "grid" x and y.
+
+    Now that it has an x and a y: If it's in bounds:
+        draw it, map it, grid it, queue it.
+    '''
+    def add_node(self, parent_node, input_text):
+        new_node = Node(input_text, parent_node.depth+1, parent_node, self.canvas)
+        self.add_existing_node(parent_node, new_node)
+
+
+    def redraw(self):
+        self.canvas.delete('all')
+
+        #Constructor, except we already know root.
+        self.reset_bookkeeping_info()
+
+        central_node = self.central_node
+        self.depth_label.config(text = "Depth={}".format(self.central_node.depth))
+
+        self.register_node(central_node, central_node.input_text)
+
+        children = self.central_node.children
+        num_children = len(children)
+        sws = self.central_node.sliding_window_start
+        for i in range(sws, min(sws+num_children, sws+35)):
+            self.add_existing_node(self.central_node, children[i % num_children], False)
+        self.canvas.update()
+
+
+    #Tree:payload constructor
     @staticmethod
     def _construct_from_payload(payload):
         root_payload = payload["root"]
@@ -288,7 +405,16 @@ class Tree:
 
         return tree
 
-    #Tree
+    #Tree:serialization_dict
+    def serialization_dict(self):
+        keys_to_pickle = {"root" : self.root.serialization_dict(),
+                          "labels": NotesFrame.labels}
+        return keys_to_pickle
+    
+    def run(self):
+        self.tree_window.mainloop()
+    
+    #Tree:init
     def __init__(self, input_text=""): #Maybe more like canvas? And make it a member?
         self.tree_window = Tk()
         self.tree_window.geometry("1500x600")
@@ -302,102 +428,11 @@ class Tree:
         self.init_side_frame()
         self.init_popup_menu()
 
-        self._reset_bookeeping_info()
-        self._register_node(self.root, self.root.input_text)
+        self.reset_bookkeeping_info()
+        self.register_node(self.root, self.root.input_text)
 
         self.double_click_flag = False
 
-    def run(self):
-        self.tree_window.mainloop()
-
-
-
-    def _determine_row(self, y):
-        root_y = self.root.y
-        deviations = 0
-        delta = y - root_y
-        return 7//2+delta//VERTICAL_GAP
-
-
-    def _determine_col(self, x):
-        root_x = self.root.x
-        deviations = 0
-        delta = x - root_x
-        return 5//2+delta//HORIZONTAL_GAP
-
-    def _print_grid(self):
-        s = [[str(e) for e in row] for row in self.grid]
-        lens = [max(map(len, col)) for col in zip(*s)]
-        fmt = '\t'.join('{{:{}}}'.format(x) for x in lens)
-        table = [fmt.format(*row) for row in s]
-        print('\n'.join(table))
-        print()
-
-    def _no_collide(self, grid_x, grid_y):
-        return self.grid[grid_y][grid_x] == 0  
-    
-    def change_root(self, tkinter_id):
-        node_ref = self.tkinter_nodes_to_ids[tkinter_id]  
-        self.central_node = node_ref
-        self.central_node.x = half_width
-        self.central_node.y = half_height        
-        self.redraw()
-
-
-    
-    def add_existing_node(self, parent_node, new_node, do_add_child=True):
-        if do_add_child:
-            parent_node.add_child(new_node)
-
-        if parent_node is self.central_node:
-            '''
-            Having it run at least once because: ?
-            '''
-            while True:
-                if not self.node_queue: #Tree is locked
-                    return
-                
-                new_node.x, new_node.y, source_dir = self.node_queue.pop(0)
-                grid_x, grid_y = self._determine_col(new_node.x), self._determine_row(new_node.y)
-
-                if not new_node._in_bounds(source_dir) or not self._no_collide(grid_x, grid_y):
-                    continue #This one is bad, but we keep trying.
-
-                self._register_node(new_node, new_node.input_text)
-                break #Break if we found a coordinate. No need to keep pumping.
-
-    '''
-    Make new Node, add child no matter what.
-
-    If parent_node is central node, we populate its
-    x and y based on what we pop off the queue. We also
-    have the notion of an equivalent "grid" x and y.
-
-    Now that it has an x and a y: If it's in bounds:
-        draw it, map it, grid it, queue it.
-    '''
-    def add_node(self, parent_node, input_text):
-        new_node = Node(input_text, parent_node.depth+1, parent_node, self.canvas)
-        self.add_existing_node(parent_node, new_node)
-
-
-    def redraw(self):
-        self.canvas.delete('all')
-
-        #Constructor, except we already know root.
-        self._reset_bookeeping_info()
-
-        central_node = self.central_node
-        self.depth_label.config(text = "Depth={}".format(self.central_node.depth))
-
-        self._register_node(central_node, central_node.input_text)
-
-        children = self.central_node.children
-        num_children = len(children)
-        sws = self.central_node.sliding_window_start
-        for i in range(sws, min(sws+num_children, sws+35)):
-            self.add_existing_node(self.central_node, children[i % num_children], False)
-        self.canvas.update()
 
 class Node:
 
@@ -545,10 +580,9 @@ class NotesFrame:
 
         #Type of note
         self.note_type_label = Label(self.add_note_dialog, text="Enter the type of note")
-        self.note_type = StringVar()
-        note_type_input = Entry(self.add_note_dialog, textvariable=self.note_type)
+        self.note_type_input = Entry(self.add_note_dialog)
         self.note_type_label.pack()
-        note_type_input.pack()
+        self.note_type_input.pack()
 
         #Color picker
         self.color_pick_label = Label(self.add_note_dialog, text="Pick a color for this note type")
@@ -591,7 +625,7 @@ class NotesFrame:
     
     def create_note_postdialog(self):
         #Are we using an old label colour or not?
-        label = self.note_type.get()
+        label = self.note_type_input.get()
         color = None
         if len(label) == 0: #Old label was chosen
             chosen_label_index = self.prevous_label_listbox.curselection()[0]

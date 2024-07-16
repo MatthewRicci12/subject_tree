@@ -7,6 +7,12 @@ from math import ceil, floor
 from tree_and_node import *
 import functools
 
+def no_event(func):
+    @functools.wraps(func)
+    def wrapper(self, *args):
+        return func(self)
+    return wrapper
+
 class App: #GOOD TO GO
 
     #Helpers
@@ -16,7 +22,8 @@ class App: #GOOD TO GO
         return file_path
     
     #Postdialog functions
-    def postdialog_create_cur_tree(self, _):
+    @no_event
+    def postdialog_create_cur_tree(self):
         self.tree_creation_dialog.destroy()
         self.main_menu.destroy()
         self.main_menu = None
