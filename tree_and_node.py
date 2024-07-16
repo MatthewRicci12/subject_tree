@@ -47,7 +47,7 @@ class Tree:
     #Tree:Dialog functions
     #GOOD
     def dialog_menu_add_child_node(self):
-        self.selected_node = self.tkinter_nodes_to_ids[self.clicked]
+        self.selected_node = self.tkinter_ids_to_nodes[self.clicked_id]
         self.add_child_dialog = Toplevel(takefocus=True)
         self.add_child_dialog.attributes("-topmost", True)
         self.add_child_dialog.grab_set()
@@ -62,7 +62,7 @@ class Tree:
 
     #GOOD
     def dialog_menu_batch_add_child_node(self):
-        self.selected_node = self.tkinter_nodes_to_ids[self.clicked]
+        self.selected_node = self.tkinter_ids_to_nodes[self.clicked_id]
         self.add_child_dialog = Toplevel(takefocus=True)
         self.add_child_dialog.attributes("-topmost", True)
         self.add_child_dialog.grab_set()
@@ -112,13 +112,13 @@ class Tree:
         new_node_name = self.inputtxt.get()
         self.rename_node_dialog.destroy()
 
-        selected_node = self.tkinter_nodes_to_ids[self.clicked]  
+        selected_node = self.tkinter_ids_to_nodes[self.clicked_id]  
         self.canvas.itemconfig(selected_node.text_id, text=new_node_name)
         selected_node.input_text = new_node_name
 
     #GOOD
     def menu_delete_node(self):
-        selected_node = self.tkinter_nodes_to_ids[self.clicked]
+        selected_node = self.tkinter_ids_to_nodes[self.clicked_id]
 
         if selected_node is self.central_node:
             if selected_node is self.root:
@@ -144,13 +144,13 @@ class Tree:
             
     #GOOD
     def menu_go_to_parent(self):
-        selected_node = self.tkinter_nodes_to_ids[self.clicked]
+        selected_node = self.tkinter_ids_to_nodes[self.clicked_id]
         parent = selected_node.parent
         self.central_node = parent
         self.redraw()
 
     #Tree:Window-building functions
-        #GOOD
+    #GOOD
     def init_popup_menu(self):
         self.popup_menu = Menu(self.tree_window, tearoff = 0)
 
@@ -215,8 +215,8 @@ class Tree:
         self.redraw()
 
     #GOOD
-    def mouse_click(self, event, id):
-        self.clicked = id
+    def mouse_click(self, event):
+        self.clicked_id = event.widget.find_closest(event.x, event.y)[0]
         self.canvas.after(300, self.mouse_action, event)
 
     #GOOD
@@ -229,9 +229,9 @@ class Tree:
     def mouse_action(self):
         if self.double_click_flag:
             self.double_click_flag = False
-            self.invoke_notes(self.clicked)
+            self.invoke_notes(self.clicked_id)
         else:
-            self.change_root(self.clicked)
+            self.change_root(self.clicked_id)
     
     #TODO: Any more elegant way to do this? It's tough.
     def return_to_main_menu(self):
@@ -249,11 +249,11 @@ class Tree:
 
 
     # def popup(self): 
-    #     messagebox.showinfo("",  "ID of clicked widget: {}".format(self.clicked)) 
+    #     messagebox.showinfo("",  "ID of clicked widget: {}".format(self.clicked_id)) 
 
-
-    def show_popup_menu(self, event, id):
-        self.clicked = id
+    #GOOD
+    def show_popup_menu(self, event):
+        self.clicked_id = event.widget.find_closest(event.x, event.y)[0]
         try: 
             self.popup_menu.tk_popup(event.x_root, event.y_root) 
         finally: 
@@ -261,26 +261,26 @@ class Tree:
 
     #GOOD
     def invoke_notes(self, tkinter_id):
-        selected_node = self.tkinter_nodes_to_ids[tkinter_id]
+        selected_node = self.tkinter_ids_to_nodes[tkinter_id]
         selected_node.open_notes_menu()
         
     #GOOD
     def reset_bookkeeping_info(self):
         self.grid = [[0 for _ in range(5)] for __ in range(7)]
-        self.tkinter_nodes_to_ids = {}
+        self.tkinter_ids_to_nodes = {}
         self.node_queue = []
 
     def register_node(self, node, input_text):
         #Draw it
-        tkinter_id = node.draw_circle(input_text)
+        node.draw_circle(input_text)
 
         #Map it
-        self.tkinter_nodes_to_ids[tkinter_id] = node
-        self.canvas.tag_bind(tkinter_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
-        self.canvas.tag_bind(tkinter_id, '<Button-1>', lambda event, id = tkinter_id: self.mouse_click(event, id))             
-        self.canvas.tag_bind(tkinter_id, '<Double-Button-1>', self.double_click)     
-        self.canvas.tag_bind(node.text_id, '<Button-3>', lambda event, id = tkinter_id: self.show_popup_menu(event, id)) #This lambda is necessary
-        self.canvas.tag_bind(node.text_id, '<Button-1>', lambda event, id = tkinter_id: self.mouse_click(event, id))             
+        self.tkinter_ids_to_nodes[node.tkinter_id] = node
+        self.canvas.tag_bind(node.tkinter_id, '<Button-3>', self.show_popup_menu)
+        self.canvas.tag_bind(node.tkinter_id, '<Button-1>', self.mouse_click)             
+        self.canvas.tag_bind(node.tkinter_id, '<Double-Button-1>', self.double_click)     
+        self.canvas.tag_bind(node.text_id, '<Button-3>', self.show_popup_menu) 
+        self.canvas.tag_bind(node.text_id, '<Button-1>', self.mouse_click)             
         self.canvas.tag_bind(node.text_id, '<Double-Button-1>', self.double_click)   
 
         #Grid it
@@ -319,7 +319,7 @@ class Tree:
         return self.grid[grid_y][grid_x] == 0  
     
     def change_root(self, tkinter_id):
-        selected_node = self.tkinter_nodes_to_ids[tkinter_id]  
+        selected_node = self.tkinter_ids_to_nodes[tkinter_id]  
         self.central_node = selected_node
         self.central_node.x = half_width
         self.central_node.y = half_height        
@@ -713,7 +713,7 @@ class NotesFrame:
         self.notes_menu.protocol("WM_DELETE_WINDOW", lambda: self.on_close())
 
         self.note_selected = None
-        self.clicked = None
+        self.clicked_id = None
         self.double_click_flag = False
 
     def swap_labels(self, to_widget):
