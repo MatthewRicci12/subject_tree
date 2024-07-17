@@ -31,6 +31,8 @@ LEFT_DIR = 1
 RIGHT_DIR = 2
 UP_DIR = 3
 MAX_NODES_ON_SCREEN = 35
+MAX_NUM_CHILDREN_ROW = 7
+MAX_NUM_CHILDREN_COL = 5
 
 
 half_width = 750
@@ -270,6 +272,9 @@ class Tree:
         self.tkinter_ids_to_nodes = {}
         self.node_queue = []
 
+    #GOOD
+    #Note: Map is needed cause you can't monkeypatch an int.
+    #TODO: If you can think of anything though...
     def register_node(self, node, input_text):
         #Draw it
         node.draw_circle(input_text)
@@ -294,30 +299,29 @@ class Tree:
         self.node_queue.append((node.x+HORIZONTAL_GAP, node.y, LEFT_DIR))
         self.node_queue.append((node.x, node.y-VERTICAL_GAP, DOWN_DIR))
 
+    #GOOD
     def determine_row(self, y):
-        root_y = self.root.y
-        deviations = 0
-        delta = y - root_y
-        return 7//2+delta//VERTICAL_GAP
+        delta = y - self.root.y
+        return MAX_NUM_CHILDREN_ROW//2+delta//VERTICAL_GAP
 
-
+    #GOOD
     def determine_col(self, x):
-        root_x = self.root.x
-        deviations = 0
-        delta = x - root_x
-        return 5//2+delta//HORIZONTAL_GAP
+        delta = x - self.root.x
+        return MAX_NUM_CHILDREN_COL//2+delta//HORIZONTAL_GAP
 
-    def print_grid(self):
-        s = [[str(e) for e in row] for row in self.grid]
-        lens = [max(map(len, col)) for col in zip(*s)]
-        fmt = '\t'.join('{{:{}}}'.format(x) for x in lens)
-        table = [fmt.format(*row) for row in s]
-        print('\n'.join(table))
-        print()
+    # def print_grid(self):
+    #     s = [[str(e) for e in row] for row in self.grid]
+    #     lens = [max(map(len, col)) for col in zip(*s)]
+    #     fmt = '\t'.join('{{:{}}}'.format(x) for x in lens)
+    #     table = [fmt.format(*row) for row in s]
+    #     print('\n'.join(table))
+    #     print()
 
+    #GOOD
     def no_collide(self, grid_x, grid_y):
         return self.grid[grid_y][grid_x] == 0  
     
+    #GOOD
     def change_root(self, tkinter_id):
         selected_node = self.tkinter_ids_to_nodes[tkinter_id]  
         self.central_node = selected_node
@@ -325,14 +329,8 @@ class Tree:
         self.central_node.y = half_height        
         self.redraw()
 
-    def add_existing_node(self, parent_node, new_node, do_add_child=True):
-        if do_add_child:
-            parent_node.add_child(new_node)
-
+    def find_coordinate_for_node(self, parent_node, new_node):
         if parent_node is self.central_node:
-            '''
-            Having it run at least once because: ?
-            '''
             while True:
                 if not self.node_queue: #Tree is locked
                     return
@@ -346,41 +344,38 @@ class Tree:
                 self.register_node(new_node, new_node.input_text)
                 break #Break if we found a coordinate. No need to keep pumping.
 
-    '''
-    Make new Node, add child no matter what.
 
-    If parent_node is central node, we populate its
-    x and y based on what we pop off the queue. We also
-    have the notion of an equivalent "grid" x and y.
 
-    Now that it has an x and a y: If it's in bounds:
-        draw it, map it, grid it, queue it.
-    '''
+    #GOOD
     def add_node(self, parent_node, input_text):
         new_node = Node(input_text, parent_node.depth+1, parent_node, self.canvas)
-        self.add_existing_node(parent_node, new_node)
+        parent_node.add_child(new_node)
+        self.find_coordinate_for_node(parent_node, new_node)
 
-
+    #TODO
     def redraw(self):
         self.canvas.delete('all')
 
         #Constructor, except we already know root.
+        #before I had: central_node = self.central_node
         self.reset_bookkeeping_info()
-
-        central_node = self.central_node
+        self.register_node(self.central_node, self.central_node.input_text)
         self.depth_label.config(text = "Depth={}".format(self.central_node.depth))
-
-        self.register_node(central_node, central_node.input_text)
 
         children = self.central_node.children
         num_children = len(children)
         sws = self.central_node.sliding_window_start
-        for i in range(sws, min(sws+num_children, sws+35)):
-            self.add_existing_node(self.central_node, children[i % num_children], False)
+
+        #TODO: Why this range? Consider replacing the stuff in min with variables.
+        #IT would be good to explain this loop with a comment.
+        for i in range(sws, min(sws+num_children, sws+MAX_NODES_ON_SCREEN)):
+            self.find_coordinate_for_node(self.central_node, children[i % num_children])
+
         self.canvas.update()
 
 
     #Tree:payload constructor
+    #TODO: Fix how NotesFrame/Notes gets intiialized
     @staticmethod
     def _construct_from_payload(payload):
         root_payload = payload["root"]
@@ -388,16 +383,17 @@ class Tree:
         tree.root = Node(root_payload["input_text"], 0, None, tree.canvas, \
                     half_width, half_height)
         tree.central_node = tree.root
+        tree.root.notes_frame = NotesFrame()
         
         for child_node_payload in root_payload["children"]:
             new_node = Node._construct_from_payload(child_node_payload, tree.root, tree.canvas)
             tree.root.add_child(new_node)
 
-        tree.root.notes_frame = NotesFrame()
+
         for note_payload in root_payload["notes_frame"]["notes"]:
             cur_row = len(tree.root.notes_frame.notes)
             note = Note._construct_from_payload(note_payload, tree.root.notes_frame.main_frame, cur_row)
-            note.note_preview.bind("<Button-1>", tree.root.notes_frame.mouse_click) #TODO: T_T This is ghastly.
+            note.note_preview.bind("<Button-1>", tree.root.notes_frame.mouse_click)
             note.note_preview.bind("<Double-Button-1>", tree.root.notes_frame.double_click)
             tree.root.notes_frame.notes.append(note)
 
@@ -406,25 +402,27 @@ class Tree:
         return tree
 
     #Tree:serialization_dict
+    #GOOD
     def serialization_dict(self):
         keys_to_pickle = {"root" : self.root.serialization_dict(),
                           "labels": NotesFrame.labels}
         return keys_to_pickle
     
+    #GOOD
     def run(self):
         self.tree_window.mainloop()
     
     #Tree:init
+    #GOOD
     def __init__(self, input_text=""): #Maybe more like canvas? And make it a member?
         self.tree_window = Tk()
         self.tree_window.geometry("1500x600")
         self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800)
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)  
-
         root = Node(input_text, 0, None, self.canvas, half_width, half_height)
-
         self.root = root
         self.central_node = root
+
         self.init_side_frame()
         self.init_popup_menu()
 
