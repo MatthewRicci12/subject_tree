@@ -117,8 +117,9 @@ class Tree:
         selected_node = self.tkinter_ids_to_nodes[self.clicked_id]  
         self.canvas.itemconfig(selected_node.text_id, text=new_node_name)
         selected_node.input_text = new_node_name
-
+    
     #GOOD
+    #TODO: Although, is there anything I can do about this nesting?
     def menu_delete_node(self):
         selected_node = self.tkinter_ids_to_nodes[self.clicked_id]
 
@@ -128,13 +129,7 @@ class Tree:
                     self.return_to_main_menu()
                 else:                             #Del root, sucessor
                     first_child = self.root.children[0] 
-
-                    self.root = first_child
-                    self.root.x = half_width
-                    self.root.y = half_height
-                    self.root.parent = None 
-                    self.central_node = self.root
-                    self.redraw()
+                    self.change_root(first_child)
             else:                                 #Central node, but not root   
                 selected_node.parent.children.remove(selected_node)
                 self.central_node = selected_node.parent
@@ -208,6 +203,15 @@ class Tree:
 
     #Tree:Top-level functions
     #GOOD
+    def change_root(self, new_root):
+        self.root = new_root
+        self.root.x = half_width
+        self.root.y = half_height
+        self.root.parent = None 
+        self.central_node = self.root
+        self.redraw()    
+
+    #GOOD
     def move(self, amount):
         num_children_nodes_visible = self.central_node.children
 
@@ -233,7 +237,7 @@ class Tree:
             self.double_click_flag = False
             self.invoke_notes(self.clicked_id)
         else:
-            self.change_root(self.clicked_id)
+            self.change_central_node(self.clicked_id)
     
     #TODO: Any more elegant way to do this? It's tough.
     def return_to_main_menu(self):
@@ -322,13 +326,14 @@ class Tree:
         return self.grid[grid_y][grid_x] == 0  
     
     #GOOD
-    def change_root(self, tkinter_id):
+    def change_central_node(self, tkinter_id):
         selected_node = self.tkinter_ids_to_nodes[tkinter_id]  
         self.central_node = selected_node
         self.central_node.x = half_width
         self.central_node.y = half_height        
         self.redraw()
 
+    #GOOD
     def find_coordinate_for_node(self, parent_node, new_node):
         if parent_node is self.central_node:
             while True:
@@ -343,8 +348,6 @@ class Tree:
 
                 self.register_node(new_node, new_node.input_text)
                 break #Break if we found a coordinate. No need to keep pumping.
-
-
 
     #GOOD
     def add_node(self, parent_node, input_text):

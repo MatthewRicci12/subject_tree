@@ -16,7 +16,7 @@ def no_event(func):
 class App: #GOOD TO GO
 
     #Helpers
-    def _get_file_from_user(self):
+    def get_file_from_user(self):
         file_path = filedialog.askopenfilename(title="Select a File", filetypes=[("Pickle files", "*.pickle"), \
                         ("All files", "*.*")], initialdir = "saved_trees")
         return file_path
@@ -63,7 +63,7 @@ class App: #GOOD TO GO
 
     #Top-level functions
     def load_existing_tree(self):
-        file_path = self._get_file_from_user()
+        file_path = self.get_file_from_user()
 
         if file_path:
             self.main_menu.destroy()
