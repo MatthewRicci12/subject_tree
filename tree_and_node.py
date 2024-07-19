@@ -35,7 +35,7 @@ MAX_NUM_CHILDREN_ROW = 7
 MAX_NUM_CHILDREN_COL = 5
 
 
-half_width = 750
+half_width = 500
 half_height = 300 
 
 def no_event(func):
@@ -419,8 +419,8 @@ class Tree:
     #GOOD
     def __init__(self, input_text=""): #Maybe more like canvas? And make it a member?
         self.tree_window = Tk()
-        self.tree_window.geometry("1500x600")
-        self.canvas = Canvas(self.tree_window, width = 1100 - 120, height = 800)
+        self.tree_window.geometry("1000x600")
+        self.canvas = Canvas(self.tree_window)
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)  
         root = Node(input_text, 0, None, self.canvas, half_width, half_height)
         self.root = root
@@ -437,12 +437,14 @@ class Tree:
 
 class Node:
 
+    #GOOD
     def open_notes_menu(self):
         self.notes_frame.show_self()
 
     '''
     Calculate if this node is even drawable
     '''
+    #GOOD #TODO ALtho if you CAN make it any nicer...
     def _in_bounds(self, source_dir):
         if source_dir == UP_DIR: #Bottom half doesn't need to account for gap
             return self.y+RADIUS <= 800 \
