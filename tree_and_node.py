@@ -33,10 +33,14 @@ UP_DIR = 3
 MAX_NODES_ON_SCREEN = 35
 MAX_NUM_CHILDREN_ROW = 7
 MAX_NUM_CHILDREN_COL = 5
-
+TREE_WINDOW_WIDTH = 1000
+TREE_WINDOW_HEIGHT = 600
+LINE_LENGTH = 14
+MAX_LINES = 4
 
 half_width = 500
 half_height = 300 
+
 
 def no_event(func):
     @functools.wraps(func)
@@ -419,7 +423,7 @@ class Tree:
     #GOOD
     def __init__(self, input_text=""): #Maybe more like canvas? And make it a member?
         self.tree_window = Tk()
-        self.tree_window.geometry("1000x600")
+        self.tree_window.geometry(f"{TREE_WINDOW_WIDTH}x{TREE_WINDOW_HEIGHT}")
         self.canvas = Canvas(self.tree_window)
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)  
         root = Node(input_text, 0, None, self.canvas, half_width, half_height)
@@ -447,45 +451,46 @@ class Node:
     #GOOD #TODO ALtho if you CAN make it any nicer...
     def _in_bounds(self, source_dir):
         if source_dir == UP_DIR: #Bottom half doesn't need to account for gap
-            return self.y+RADIUS <= 800 \
+            return self.y+RADIUS <= TREE_WINDOW_HEIGHT \
                 and self.x-RADIUS-OFFSET >= 0 \
-                and self.x+RADIUS+OFFSET <= 1000 \
+                and self.x+RADIUS+OFFSET <= TREE_WINDOW_WIDTH \
                 and self.y-RADIUS-VERTICAL_GAP >= 0 
         
         if source_dir == RIGHT_DIR: #Left half doesn't need to account for gap
-            return self.y+RADIUS <= 800 \
+            return self.y+RADIUS <= TREE_WINDOW_HEIGHT \
                 and self.x-RADIUS-OFFSET >= 0 \
-                and self.x+RADIUS+HORIZONTAL_GAP+OFFSET <= 1000 \
+                and self.x+RADIUS+HORIZONTAL_GAP+OFFSET <= TREE_WINDOW_WIDTH \
                 and self.y-RADIUS >= 0
         
         if source_dir == LEFT_DIR: #Right half doesn't need to account for gap
-            return self.y+RADIUS <= 800 \
+            return self.y+RADIUS <= TREE_WINDOW_HEIGHT \
                 and self.x-RADIUS-HORIZONTAL_GAP-OFFSET >= 0 \
-                and self.x+RADIUS+OFFSET <= 1000 \
+                and self.x+RADIUS+OFFSET <= TREE_WINDOW_WIDTH \
                 and self.y-RADIUS >= 0
         
         if source_dir == DOWN_DIR: #Top half doesn't need to account for gap.
-            return self.y+RADIUS+VERTICAL_GAP <= 800 \
+            return self.y+RADIUS+VERTICAL_GAP <= TREE_WINDOW_HEIGHT \
                 and self.x-RADIUS-OFFSET >= 0 \
-                and self.x+RADIUS+OFFSET <= 1000 \
+                and self.x+RADIUS+OFFSET <= TREE_WINDOW_WIDTH \
                 and self.y-RADIUS >= 0
     '''
     Draw point in the center of the node as a visual aid if desired.
     '''
-    def _draw_point(self, x, y):
-        self.canvas_ref.create_oval(x-1, y-1, x+1, y+1)
+    # def _draw_point(self, x, y):
+    #     self.canvas_ref.create_oval(x-1, y-1, x+1, y+1)
 
     '''
     Insert newlines/ellipses elegantly.
     '''
+    #GOOD
     def _process_text(self, inputstr):
-        linelength = 14
-        reformatted = '\n'.join(wrap(inputstr, width=linelength, max_lines=4, placeholder="..."))
+        reformatted = '\n'.join(wrap(inputstr, width=LINE_LENGTH, max_lines=MAX_LINES, placeholder="..."))
         return reformatted
 
     '''
     Actually draw the node based on x and y. Includs the text to go along with it.
     '''  
+    #GOOD
     def draw_circle(self, input_text):
 
         x0 = self.x-RADIUS
@@ -493,8 +498,7 @@ class Node:
         x1 = self.x+RADIUS
         y1 = self.y+RADIUS
 
-        id = self.canvas_ref.create_oval(x0, y0, x1+OFFSET, y1, fill="white")
-        self.tkinter_id = id
+        self.tkinter_id = self.canvas_ref.create_oval(x0, y0, x1+OFFSET, y1, fill="white")
 
         input_text = self._process_text(input_text)
         self.text_id = self.canvas_ref.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
@@ -502,14 +506,12 @@ class Node:
         #self.canvas_ref.create_rectangle(x0+HEURISTIC_1, y0+HEURISTIC_2, x1+OFFSET-HEURISTIC_1, y1-HEURISTIC_2)
         return id
 
-    '''
-    Add child to this node.
-    We do 
-    '''
+    #GOOD
     def add_child(self, child):
         self.children.append(child)
 
     #Node
+    #TODO
     def serialization_dict(self):
         keys_to_save = {
             "input_text" : self.input_text,
@@ -521,6 +523,7 @@ class Node:
         
 
     #Node
+    #TODO
     @staticmethod
     def _construct_from_payload(payload, parent, canvas_ref):
         node = Node(payload["input_text"], payload["depth"], parent, canvas_ref)
@@ -540,6 +543,7 @@ class Node:
     
 
     #Node
+    #TODO
     def __init__(self, input_text, depth, parent, canvas_ref, x=-1, y=-1):
         self.x = x
         self.y = y
