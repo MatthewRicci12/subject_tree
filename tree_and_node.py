@@ -591,9 +591,9 @@ class NotesFrame:
             self.notes_menu.grab_set()
 
             #set colors
-            for note in self.notes:
-                cur_note_type_input = note.note_type_input
-                note.label.configure(fg=self.labels[cur_note_type_input][self.COLOR])
+            # for note in self.notes:
+            #     cur_note_type_input = note.note_type_input
+            #     note.label.configure(fg=self.labels[cur_note_type_input][self.COLOR])
         finally:
             self.notes_menu.grab_release()
 
@@ -659,21 +659,28 @@ class NotesFrame:
                 widget.note_ref.popup_textbox(event)
             else:
                 self.highlight(event)   
+
+
+    def increment_ref_count(self, label):
+        self.labels[label][self.REF_COUNT] += 1
     #GOOD
     def create_note_postdialog(self):
         #Are we using an old label colour or not?
         label = self.note_type_input.get()
         color = None
 
-        existing_label_chosen = len(label) == 0
+        label_chosen_from_list = len(label) == 0
         typed_label_exists = label in self.labels
+        existing_label_chosen = label_chosen_from_list or typed_label_exists
 
-        if existing_label_chosen or typed_label_exists: #Old label was chosen
-            if existing_label_chosen:
+        if existing_label_chosen: #Old label was chosen
+
+            if label_chosen_from_list:
                 chosen_label_index = self.prevous_label_listbox.curselection()[0]
                 label = self.prevous_label_listbox.get(chosen_label_index)
-            color = self.labels[label][self.COLOR]
-            self.labels[label][self.REF_COUNT] += 1
+            elif typed_label_exists:
+                color = self.labels[label][self.COLOR]
+                self.increment_ref_count(label)
         else:
             self.labels[label] = [self.chosen_color, 1]
             color = self.chosen_color
@@ -714,18 +721,21 @@ class NotesFrame:
         self.change_note_type_color_dialog.protocol("WM_DELETE_WINDOW", self.redraw)
 
     #GOOD
+    def configure_label_colors(self, changed_note_type_input, chosen_color):
+        for note in self.notes:
+            if note.note_type_input == changed_note_type_input:
+                note.label.configure(fg=chosen_color)
+
+    #GOOD
     def postdialog_change_note_type_color(self, event):
         w = event.widget
         index = int(w.curselection()[0])
-        note_type_input = w.get(index)        
+        changed_note_type_input = w.get(index)        
         chosen_color = colorchooser.askcolor(parent=self.change_note_type_color_dialog)[1]
 
-        if chosen_color is None:
-            return
-        else:
-            self.labels[note_type_input][self.COLOR] = chosen_color
-    
-
+        if chosen_color:
+            self.configure_label_colors(changed_note_type_input, chosen_color)
+            self.labels[changed_note_type_input][self.COLOR] = chosen_color
 
     #NotesFrame
     #TODO
@@ -796,25 +806,29 @@ class NotesFrame:
     #GOOD
     def highlight(self, event): #A diagram would be great for this
         widget = event.widget
-        cur_selected = self.note_selected
 
-        if not widget.selected and not cur_selected:
-            if cur_selected is not None:
-                cur_selected.selected = False 
-                cur_selected.configure(background=cur_selected.color)
+        no_note_currently_selected = not self.note_selected
+        selected_note_reclicked = widget is self.note_selected
 
+        if no_note_currently_selected:
             widget.selected = True
             self.note_selected = widget
             widget.configure(background=self.HIGHLIGHT_COLOR)
 
-        elif widget is cur_selected:
-
+        elif selected_note_reclicked:
             widget.selected = False
             self.note_selected = None
             widget.configure(background=widget.color)
 
         else:
             self.swap_labels(widget)
+
+    def decrement_ref_count(self, selected_note):
+        self.labels[selected_note.note_type_input][self.REF_COUNT] -= 1
+
+        if self.labels[selected_note.note_type_input][self.REF_COUNT] == 0:
+            del self.labels[selected_note.note_type_input]
+
 
     #GOOD
     def menu_delete_note(self):
@@ -828,10 +842,7 @@ class NotesFrame:
 
         self.notes.remove(selected_note)
 
-        self.labels[selected_note.note_type_input][self.REF_COUNT] -= 1
-
-        if self.labels[selected_note.note_type_input][self.REF_COUNT] == 0:
-            del self.labels[selected_note.note_type_input]
+        self.decrement_ref_count(selected_note)
 
     #NotesFrame
     #TODO
