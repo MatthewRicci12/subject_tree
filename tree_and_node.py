@@ -523,7 +523,8 @@ class Node:
         
 
     #Node
-    #TODO
+    #TODO: Also, apparently inner classes is not pythonic, nor does it even work the
+    #same way as in Java. I guess canvas ref is fine.
     @staticmethod
     def _construct_from_payload(payload, parent, canvas_ref):
         node = Node(payload["input_text"], payload["depth"], parent, canvas_ref)
@@ -559,11 +560,15 @@ class Node:
 
 class NotesFrame:
 
+    #GOOD
     COLOR = 0
     REF_COUNT = 1
+    HIGHLIGHT_COLOR = "#ECEC18"
 
+    #GOOD
     labels = OrderedDict()
 
+    #GOOD
     def show_self(self):
         try:
             self.notes_menu.deiconify()
@@ -576,14 +581,16 @@ class NotesFrame:
         finally:
             self.notes_menu.grab_release()
 
+    #GOOD
     def popup_color_chooser(self):
          self.chosen_color = colorchooser.askcolor(parent=self.add_note_dialog)[1]
 
+    #GOOD
     def add_note(self):
         self.add_note_dialog = Toplevel(takefocus=True)
         self.add_note_dialog.attributes("-topmost", True)
         self.add_note_dialog.grab_set()
-        self.add_note_dialog.bind('<Return>', lambda event: self.create_note_postdialog())
+        self.add_note_dialog.bind('<Return>', self.create_note_postdialog)
 
         #Type of note
         self.note_type_label = Label(self.add_note_dialog, text="Enter the type of note")
@@ -601,24 +608,31 @@ class NotesFrame:
         #Pick previous label
         self.color_pick_label = Label(self.add_note_dialog, text="Or pick a previously made note type")
         self.prevous_label_listbox = Listbox(self.add_note_dialog)
-        i = 1
+
+        idx = 1
         for label in self.labels.keys():
-            self.prevous_label_listbox.insert(i, label)
-            i += 1
+            self.prevous_label_listbox.insert(idx, label)
+            idx += 1
+
         self.color_pick_label.pack()
         self.prevous_label_listbox.pack()
 
         submit_button = Button(self.add_note_dialog, text="Submit", command=self.create_note_postdialog)
         submit_button.pack()
 
+    #TODO
+    #GOOD
     def mouse_click(self, event):
         widget = event.widget
         widget.after(300, self.mouse_action, event)
 
-
-    def double_click(self, event):
+    #TODO
+    #GOOD
+    @no_event
+    def double_click(self):
         self.double_click_flag = True
-        
+    
+    #GOOD
     def mouse_action(self, event):
         widget = event.widget
         if self.double_click_flag:
@@ -629,27 +643,31 @@ class NotesFrame:
                 widget.note_ref.popup_textbox(event)
             else:
                 self.highlight(event)   
-    
+    #GOOD
     def create_note_postdialog(self):
         #Are we using an old label colour or not?
         label = self.note_type_input.get()
         color = None
-        if len(label) == 0: #Old label was chosen
-            chosen_label_index = self.prevous_label_listbox.curselection()[0]
-            label = self.prevous_label_listbox.get(chosen_label_index)
+
+        existing_label_chosen = len(label) == 0
+        typed_label_exists = label in self.labels
+
+        if existing_label_chosen or typed_label_exists: #Old label was chosen
+            if existing_label_chosen:
+                chosen_label_index = self.prevous_label_listbox.curselection()[0]
+                label = self.prevous_label_listbox.get(chosen_label_index)
             color = self.labels[label][self.COLOR]
             self.labels[label][self.REF_COUNT] += 1
-        elif label in self.labels:
-            color = self.labels[label][self.COLOR] #Merge opportunity with code above
-            self.labels[label][self.REF_COUNT] += 1           
         else:
             self.labels[label] = [self.chosen_color, 1]
             color = self.chosen_color
+    
         cur_row = len(self.notes)
-        new_note = Note(self.main_frame, label, color, cur_row)       
+        new_note = Note(self.main_frame, label, color, cur_row)
         self.notes.append(new_note)
         self.add_note_dialog.destroy()
 
+    #GOOD
     def on_close(self):
         self.notes_menu.withdraw()
         if self.note_selected:
@@ -657,24 +675,29 @@ class NotesFrame:
             self.note_selected.configure(background=self.note_selected.color)
             self.note_selected = None
 
+    #GOOD
     def redraw(self):
         self.change_note_type_color_dialog.destroy()
         self.show_self()
 
+    #GOOD
     def dialog_change_note_type_color(self):
         self.change_note_type_color_dialog = Toplevel(takefocus=True)
         self.change_note_type_color_dialog.attributes("-topmost", True)
         self.change_note_type_color_dialog.grab_set()
     
         self.prevous_label_listbox = Listbox(self.change_note_type_color_dialog)
+
         i = 1
         for label in self.labels.keys():
             self.prevous_label_listbox.insert(i, label)
             i += 1
+
         self.prevous_label_listbox.pack()
         self.prevous_label_listbox.bind('<<ListboxSelect>>', self.postdialog_change_note_type_color)
         self.change_note_type_color_dialog.protocol("WM_DELETE_WINDOW", self.redraw)
 
+    #GOOD
     def postdialog_change_note_type_color(self, event):
         w = event.widget
         index = int(w.curselection()[0])
@@ -687,9 +710,9 @@ class NotesFrame:
             self.labels[note_type_input][self.COLOR] = chosen_color
     
 
-        
 
     #NotesFrame
+    #TODO
     def __init__(self):
 
         self.notes_menu = Toplevel()
@@ -723,25 +746,38 @@ class NotesFrame:
         self.clicked_id = None
         self.double_click_flag = False
 
+
+    def swap_order_of_notes(self, index1, index2):
+        half_index_1 = index1>>1
+        half_index_2 = index2>>1
+
+        temp = self.notes[half_index_1]
+        self.notes[half_index_1] = self.notes[half_index_2]
+        self.notes[half_index_2] = temp       
+
+    #GOOD
     def swap_labels(self, to_widget):
         from_widget = self.note_selected
+
         from_widget_row_text = from_widget.grid_info()["row"]
-        to_widget_row_text = to_widget.grid_info()["row"]
         from_widget_row_label = from_widget_row_text - 1
+
+        to_widget_row_text = to_widget.grid_info()["row"]
         to_widget_row_label = to_widget_row_text - 1
 
-        temp = self.notes[from_widget_row_text>>1]
-        self.notes[from_widget_row_text>>1] = self.notes[to_widget_row_text>>1]
-        self.notes[to_widget_row_text>>1] = temp
+        self.swap_order_of_notes(from_widget_row_text, to_widget_row_text)
 
         from_widget.grid(row=to_widget_row_text, column=0, sticky=EW, padx=(5, 5), pady=(0, 3))
         to_widget.grid(row=from_widget_row_text, column=0, sticky=EW, padx=(5, 5), pady=(0, 3))
+
         from_widget.associated_label.grid(row=to_widget_row_label, column=0, sticky=NW, padx=5)
         to_widget.associated_label.grid(row=from_widget_row_label, column=0, sticky=NW, padx=5)
+
         from_widget.selected = False
         self.note_selected = None
         from_widget.configure(background=from_widget.color)
 
+    #GOOD
     def highlight(self, event): #A diagram would be great for this
         widget = event.widget
         cur_selected = self.note_selected
@@ -753,7 +789,7 @@ class NotesFrame:
 
             widget.selected = True
             self.note_selected = widget
-            widget.configure(background="#ECEC18")
+            widget.configure(background=self.HIGHLIGHT_COLOR)
 
         elif widget is cur_selected:
 
@@ -764,12 +800,16 @@ class NotesFrame:
         else:
             self.swap_labels(widget)
 
+    #GOOD
     def menu_delete_note(self):
         selected_note = self.selected_note
+
         selected_note.note_preview.grid_remove()
         selected_note.label.grid_remove()
+
         selected_note.note_preview.destroy()
         selected_note.label.destroy()
+
         self.notes.remove(selected_note)
 
         self.labels[selected_note.note_type_input][self.REF_COUNT] -= 1
@@ -778,6 +818,7 @@ class NotesFrame:
             del self.labels[selected_note.note_type_input]
 
     #NotesFrame
+    #TODO
     def serialization_dict(self):
         keys_to_save = {
             "notes" : [note.serialization_dict() for note in self.notes]
@@ -788,6 +829,7 @@ class Note:
 
     #Note
     @staticmethod
+    #TODO
     def _construct_from_payload(note_payload, frame_ref, cur_row):
         note = Note(frame_ref, note_payload["note_type_input"], note_payload["color"], cur_row)
         note.contents = note_payload["contents"]
@@ -798,6 +840,7 @@ class Note:
         return note
     
     #Note
+    #TODO
     def serialization_dict(self):
         keys_to_save = {
             "note_type_input" : self.note_type_input,
@@ -806,6 +849,7 @@ class Note:
         }
         return keys_to_save
 
+    #GOOD
     def save_text(self):
         self.contents = self.textbox_popup.get("1.0",'end-1c')
         self.note_preview.configure(state="normal") #new
@@ -814,7 +858,7 @@ class Note:
         self.note_preview.configure(state="disabled")
         self.win.destroy()
 
-
+    #GOOD
     def popup_textbox(self, event):
         self.win = Toplevel(takefocus=True)
         self.win.attributes("-topmost", True)
@@ -826,13 +870,15 @@ class Note:
         self.win.protocol("WM_DELETE_WINDOW", self.save_text)
 
 
-    def get_random_color(self):
-        return "#{:02x}{:02x}{:02x}".format(random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
+    # def get_random_color(self):
+    #     return "#{:02x}{:02x}{:02x}".format(random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
 
+    #GOOD
     def init_popup_menu(self):
         self.popup_menu = Menu(self.frame_ref, tearoff = 0)
         self.popup_menu.add_command(label = "Delete note", command = self.frame_ref.notes_frame_ref.menu_delete_note)
 
+    #GOOD
     def show_popup_menu(self, event):
         widget = event.widget
         self.frame_ref.notes_frame_ref.selected_note = widget.note_ref
@@ -842,6 +888,7 @@ class Note:
             self.popup_menu.grab_release() 
 
     #Note
+    #TODO
     def __init__(self, frame_ref, note_type_input, color, cur_row):
         self.note_type_input = note_type_input
         self.frame_ref = frame_ref
