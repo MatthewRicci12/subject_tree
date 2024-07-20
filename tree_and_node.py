@@ -854,16 +854,17 @@ class NotesFrame:
 
 class Note:
 
+
+
     #Note
     @staticmethod
     #TODO
     def _construct_from_payload(note_payload, frame_ref, cur_row):
         note = Note(frame_ref, note_payload["note_type_input"], note_payload["color"], cur_row)
         note.contents = note_payload["contents"]
-        note.note_preview.configure(state="normal") #new
-        note.note_preview.delete("1.0", END)
-        note.note_preview.insert("1.0", note.contents)
-        note.note_preview.configure(state="disabled")
+
+        note.populate_note_preview()
+
         return note
     
     #Note
@@ -875,14 +876,17 @@ class Note:
             "color": self.color
         }
         return keys_to_save
+    
+    def populate_note_preview(self):
+        self.note_preview.configure(state="normal") #new
+        self.note_preview.delete("1.0", END)
+        self.note_preview.insert("1.0", self.contents)
+        self.note_preview.configure(state="disabled")        
 
     #GOOD
     def save_text(self):
         self.contents = self.textbox_popup.get("1.0",'end-1c')
-        self.note_preview.configure(state="normal") #new
-        self.note_preview.delete("1.0", END)
-        self.note_preview.insert("1.0", self.contents)
-        self.note_preview.configure(state="disabled")
+        self.populate_note_preview()
         self.win.destroy()
 
     #GOOD
@@ -890,15 +894,13 @@ class Note:
         self.win = Toplevel(takefocus=True)
         self.win.attributes("-topmost", True)
         self.win.grab_set()
+
         self.textbox_popup = Text(self.win) 
         self.textbox_popup.delete("1.0", END)
         self.textbox_popup.insert( "1.0", self.contents)
         self.textbox_popup.pack(side = RIGHT, fill = BOTH, expand = True)
+
         self.win.protocol("WM_DELETE_WINDOW", self.save_text)
-
-
-    # def get_random_color(self):
-    #     return "#{:02x}{:02x}{:02x}".format(random.randint(0, 200), random.randint(0, 200), random.randint(0, 200))
 
     #GOOD
     def init_popup_menu(self):
