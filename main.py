@@ -1,11 +1,8 @@
-#from tkinter import *
-# from tkinter import font as tkFont
+import functools
+
 from tkinter import filedialog
 from math import ceil, floor
-# import PIL.Image
-# import PIL.ImageTk
 from tree_and_node import *
-import functools
 
 def no_event(func):
     @functools.wraps(func)
