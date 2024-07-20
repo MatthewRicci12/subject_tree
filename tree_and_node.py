@@ -10,18 +10,22 @@ from textwrap3 import wrap
 from collections import OrderedDict
 import functools
 
-RADIUS = 50
-OFFSET = 70
-MAX_LETTERS_IN_LINE_ZI = 14
-MAX_TOPIC_LENGTH = 59
-MAX_LINES_ZI = 4
+
 
 #Heuristic values
 NUM_NODES_ON_SCREEN_HEURISTIC = 35
 NUM_NODES_COL_HEURISTIC = 5
 NUM_NODES_ROW_HEURISTIC = 7
+
 HEURISTIC_1 = 17
 HEURISTIC_2 = 20
+
+RADIUS = 50
+OFFSET = 70
+
+MAX_LETTERS_IN_LINE_ZI = 14
+MAX_TOPIC_LENGTH = 59
+MAX_LINES_ZI = 4
 
 HORIZONTAL_GAP = 185
 VERTICAL_GAP = 115
@@ -30,16 +34,19 @@ DOWN_DIR = 0
 LEFT_DIR = 1
 RIGHT_DIR = 2
 UP_DIR = 3
+
 MAX_NODES_ON_SCREEN = 35
 MAX_NUM_CHILDREN_ROW = 7
 MAX_NUM_CHILDREN_COL = 5
+
 TREE_WINDOW_WIDTH = 1000
 TREE_WINDOW_HEIGHT = 600
+
 LINE_LENGTH = 14
 MAX_LINES = 4
 
-half_width = 500
-half_height = 300 
+HALF_WIDTH = 500
+HALF_HEIGHT = 300 
 
 
 def no_event(func):
@@ -127,27 +134,37 @@ class Tree:
     def menu_delete_node(self):
         selected_node = self.tkinter_ids_to_nodes[self.clicked_id]
 
-        if selected_node is self.central_node:
-            if selected_node is self.root:
-                if not selected_node.children:    #Root was deleted, has no successor.
-                    self.return_to_main_menu()
-                else:                             #Del root, sucessor
-                    first_child = self.root.children[0] 
-                    self.change_root(first_child)
-            else:                                 #Central node, but not root   
-                selected_node.parent.children.remove(selected_node)
-                self.central_node = selected_node.parent
-                self.redraw()
-        else:                                     #Not central; simple child node currently visible.
-            #A simple child node that is currently visible
-            selected_node.parent.children.remove(selected_node)
-            self.redraw()
+        is_root = selected_node is self.root
+        has_children = selected_node.children
+        is_central_node = selected_node is self.central_node
+
+        nonroot_central_node_deleted = is_central_node and not is_root
+        root_deleted_with_successor = is_root and has_children
+        root_deleted_no_successor = is_root and not has_children
+        visible_child_node_deleted = not is_central_node
+
+        if root_deleted_no_successor:
+            self.return_to_main_menu()  
+            return   
+
+        elif root_deleted_with_successor:
+            first_child = self.root.children[0]
+            self.change_root(first_child)
+            return
             
+        elif nonroot_central_node_deleted:
+            self.central_node = selected_node.parent
+            selected_node.parent.children.remove(selected_node)
+            self.redraw()      
+
+        elif visible_child_node_deleted:
+            selected_node.parent.children.remove(selected_node)
+            self.redraw()            
+
     #GOOD
     def menu_go_to_parent(self):
         selected_node = self.tkinter_ids_to_nodes[self.clicked_id]
-        parent = selected_node.parent
-        self.central_node = parent
+        self.central_node = selected_node.parent
         self.redraw()
 
     #Tree:Window-building functions
@@ -159,7 +176,6 @@ class Tree:
         self.popup_menu.add_command(label = "Batch add child node", command = self.dialog_menu_batch_add_child_node)
         self.popup_menu.add_command(label = "Rename node", command = self.dialog_menu_rename_node)
         self.popup_menu.add_command(label = "Delete node", command = self.menu_delete_node)
-        #self.popup_menu.add_command(label = "Change style", command = self.popup)
         self.popup_menu.add_command(label = "Go to parent", command = self.menu_go_to_parent)
 
         self.double_click_flag = False        
@@ -209,17 +225,15 @@ class Tree:
     #GOOD
     def change_root(self, new_root):
         self.root = new_root
-        self.root.x = half_width
-        self.root.y = half_height
+        self.root.x = HALF_WIDTH
+        self.root.y = HALF_HEIGHT
         self.root.parent = None 
         self.central_node = self.root
         self.redraw()    
 
     #GOOD
     def move(self, amount):
-        num_children_nodes_visible = self.central_node.children
-
-        if len(num_children_nodes_visible) < MAX_NODES_ON_SCREEN:
+        if len(self.central_node.children) < MAX_NODES_ON_SCREEN:
             return
         self.central_node.sliding_window_start += amount
         self.redraw()
@@ -285,7 +299,7 @@ class Tree:
     #TODO: If you can think of anything though...
     def register_node(self, node, input_text):
         #Draw it
-        node.draw_circle(input_text)
+        node.draw_self(input_text)
 
         #Map it
         self.tkinter_ids_to_nodes[node.tkinter_id] = node
@@ -309,13 +323,13 @@ class Tree:
 
     #GOOD
     def determine_row(self, y):
-        delta = y - self.root.y
-        return MAX_NUM_CHILDREN_ROW//2+delta//VERTICAL_GAP
+        diff = y - self.root.y
+        return MAX_NUM_CHILDREN_ROW//2+diff//VERTICAL_GAP
 
     #GOOD
     def determine_col(self, x):
-        delta = x - self.root.x
-        return MAX_NUM_CHILDREN_COL//2+delta//HORIZONTAL_GAP
+        diff = x - self.root.x
+        return MAX_NUM_CHILDREN_COL//2+diff//HORIZONTAL_GAP
 
     # def print_grid(self):
     #     s = [[str(e) for e in row] for row in self.grid]
@@ -333,8 +347,8 @@ class Tree:
     def change_central_node(self, tkinter_id):
         selected_node = self.tkinter_ids_to_nodes[tkinter_id]  
         self.central_node = selected_node
-        self.central_node.x = half_width
-        self.central_node.y = half_height        
+        self.central_node.x = HALF_WIDTH
+        self.central_node.y = HALF_HEIGHT        
         self.redraw()
 
     #GOOD
@@ -375,6 +389,8 @@ class Tree:
 
         #TODO: Why this range? Consider replacing the stuff in min with variables.
         #IT would be good to explain this loop with a comment.
+        #We start wherever the sliding window is. If it has more children than
+        #max nodes, the 2nd item in min() will pass, thus limiting it.
         for i in range(sws, min(sws+num_children, sws+MAX_NODES_ON_SCREEN)):
             self.find_coordinate_for_node(self.central_node, children[i % num_children])
 
@@ -388,7 +404,7 @@ class Tree:
         root_payload = payload["root"]
         tree = Tree()
         tree.root = Node(root_payload["input_text"], 0, None, tree.canvas, \
-                    half_width, half_height)
+                    HALF_WIDTH, HALF_HEIGHT)
         tree.central_node = tree.root
         tree.root.notes_frame = NotesFrame()
         
@@ -426,7 +442,7 @@ class Tree:
         self.tree_window.geometry(f"{TREE_WINDOW_WIDTH}x{TREE_WINDOW_HEIGHT}")
         self.canvas = Canvas(self.tree_window)
         self.canvas.pack(side = RIGHT, fill = BOTH, expand = True)  
-        root = Node(input_text, 0, None, self.canvas, half_width, half_height)
+        root = Node(input_text, 0, None, self.canvas, HALF_WIDTH, HALF_HEIGHT)
         self.root = root
         self.central_node = root
 
@@ -491,7 +507,7 @@ class Node:
     Actually draw the node based on x and y. Includs the text to go along with it.
     '''  
     #GOOD
-    def draw_circle(self, input_text):
+    def draw_self(self, input_text):
 
         x0 = self.x-RADIUS
         y0 = self.y-RADIUS
