@@ -17,11 +17,12 @@ NUM_NODES_ON_SCREEN_HEURISTIC = 35
 NUM_NODES_COL_HEURISTIC = 5
 NUM_NODES_ROW_HEURISTIC = 7
 
-HEURISTIC_1 = 17
-HEURISTIC_2 = 20
+#HEURISTIC_1 = 17
+#HEURISTIC_2 = 20
+TEXT_OFFSET = 15
 
 RADIUS = 50
-OFFSET = 70
+RADIUS_OFFSET = 70
 
 MAX_LETTERS_IN_LINE_ZI = 14
 MAX_TOPIC_LENGTH = 59
@@ -468,26 +469,26 @@ class Node:
     def _in_bounds(self, source_dir):
         if source_dir == UP_DIR: #Bottom half doesn't need to account for gap
             return self.y+RADIUS <= TREE_WINDOW_HEIGHT \
-                and self.x-RADIUS-OFFSET >= 0 \
-                and self.x+RADIUS+OFFSET <= TREE_WINDOW_WIDTH \
+                and self.x-RADIUS-RADIUS_OFFSET >= 0 \
+                and self.x+RADIUS+RADIUS_OFFSET <= TREE_WINDOW_WIDTH \
                 and self.y-RADIUS-VERTICAL_GAP >= 0 
         
         if source_dir == RIGHT_DIR: #Left half doesn't need to account for gap
             return self.y+RADIUS <= TREE_WINDOW_HEIGHT \
-                and self.x-RADIUS-OFFSET >= 0 \
-                and self.x+RADIUS+HORIZONTAL_GAP+OFFSET <= TREE_WINDOW_WIDTH \
+                and self.x-RADIUS-RADIUS_OFFSET >= 0 \
+                and self.x+RADIUS+HORIZONTAL_GAP+RADIUS_OFFSET <= TREE_WINDOW_WIDTH \
                 and self.y-RADIUS >= 0
         
         if source_dir == LEFT_DIR: #Right half doesn't need to account for gap
             return self.y+RADIUS <= TREE_WINDOW_HEIGHT \
-                and self.x-RADIUS-HORIZONTAL_GAP-OFFSET >= 0 \
-                and self.x+RADIUS+OFFSET <= TREE_WINDOW_WIDTH \
+                and self.x-RADIUS-HORIZONTAL_GAP-RADIUS_OFFSET >= 0 \
+                and self.x+RADIUS+RADIUS_OFFSET <= TREE_WINDOW_WIDTH \
                 and self.y-RADIUS >= 0
         
         if source_dir == DOWN_DIR: #Top half doesn't need to account for gap.
             return self.y+RADIUS+VERTICAL_GAP <= TREE_WINDOW_HEIGHT \
-                and self.x-RADIUS-OFFSET >= 0 \
-                and self.x+RADIUS+OFFSET <= TREE_WINDOW_WIDTH \
+                and self.x-RADIUS-RADIUS_OFFSET >= 0 \
+                and self.x+RADIUS+RADIUS_OFFSET <= TREE_WINDOW_WIDTH \
                 and self.y-RADIUS >= 0
     '''
     Draw point in the center of the node as a visual aid if desired.
@@ -514,13 +515,10 @@ class Node:
         x1 = self.x+RADIUS
         y1 = self.y+RADIUS
 
-        self.tkinter_id = self.canvas_ref.create_oval(x0, y0, x1+OFFSET, y1, fill="white")
+        self.tkinter_id = self.canvas_ref.create_oval(x0, y0, x1+RADIUS_OFFSET, y1, fill="white")
 
         input_text = self._process_text(input_text)
-        self.text_id = self.canvas_ref.create_text(x1-15, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
-        #self._draw_point(x1-15, y1-RADIUS, self.canvas_ref)
-        #self.canvas_ref.create_rectangle(x0+HEURISTIC_1, y0+HEURISTIC_2, x1+OFFSET-HEURISTIC_1, y1-HEURISTIC_2)
-        return id
+        self.text_id = self.canvas_ref.create_text(x1-TEXT_OFFSET, y1-RADIUS, text=input_text, font=("Consolas", 12, "bold"), justify="center")
 
     #GOOD
     def add_child(self, child):
@@ -566,10 +564,12 @@ class Node:
         self.y = y
         self.parent = parent
         self.input_text = input_text
-        self.children = []
         self.depth = depth
+        
+        self.children = []
         self.tkinter_id = None
         self.sliding_window_start = 0
+
         self.notes_frame = NotesFrame()
         self.canvas_ref = canvas_ref
 
